@@ -16,17 +16,22 @@ interface ProfilePageProps {
 
 export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
   const { user, logout } = useAuth();
-  const { getMyHistory, deleteHistory, addToFavorites } = useApiService();
+  const { getMyHistory, deleteHistory, addToFavorites, getConversionStatus } = useApiService();
   const [myHistory, setMyHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'favorites' | 'profile'>('history');
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [stats, setStats] = useState({
-    totalConversions: 0,
     favoriteLanguages: [] as { language: string; count: number }[],
     thisMonthCount: 0,
   });
+  const [conversionStatus, setConversionStatus] = useState<{
+    can_convert: boolean;
+    remaining_conversions: number;
+    daily_limit: number;
+    is_premium: boolean;
+  } | null>(null);
 
   // 自分の変換履歴を読み込み
   useEffect(() => {
@@ -98,9 +103,23 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
     }
   }, [user]);
 
-  const calculateStats = (history: any[]) => {
-    const totalConversions = history.length;
+  // 変換ステータスを取得
+  useEffect(() => {
+    const loadStatus = async () => {
+      try {
+        const status = await getConversionStatus();
+        setConversionStatus(status);
+      } catch (error) {
+        console.error('Failed to load conversion status:', error);
+      }
+    };
 
+    if (user) {
+      loadStatus();
+    }
+  }, [user, myHistory]); // 履歴が更新されるたびにステータスも更新
+
+  const calculateStats = (history: any[]) => {
     // 言語別の使用回数を計算
     const languageCount: { [key: string]: number } = {};
     history.forEach(item => {
@@ -121,7 +140,6 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
     }).length;
 
     setStats({
-      totalConversions,
       favoriteLanguages,
       thisMonthCount,
     });
@@ -169,7 +187,7 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 md:ml-64">
-      <ProfileHeader user={user} stats={stats} />
+      <ProfileHeader user={user} stats={stats} conversionStatus={conversionStatus} />
       <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="max-w-4xl mx-auto px-4 py-8 pb-20 md:pb-8">

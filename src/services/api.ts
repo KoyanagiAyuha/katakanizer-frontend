@@ -84,6 +84,16 @@ export function useApiService() {
     });
   };
 
+  const getConversionStatus = async (): Promise<{
+    can_convert: boolean;
+    remaining_conversions: number;
+    daily_limit: number;
+    is_premium: boolean;
+    reset_time?: string;
+  }> => {
+    return apiCall('/api/convert/status');
+  };
+
   const getMyHistory = async (): Promise<HistoryItem[]> => {
     return apiCall<HistoryItem[]>('/api/history/my');
   };
@@ -194,8 +204,7 @@ export function useApiService() {
   };
 
   interface UsageStats {
-    total_conversions: number;
-    this_month: number;
+      this_month: number;
     last_month: number;
   }
 
@@ -203,15 +212,6 @@ export function useApiService() {
     return apiCall('/api/profile/usage/stats');
   };
 
-  interface ConversionStatus {
-    daily_limit: number;
-    daily_used: number;
-    is_premium: boolean;
-  }
-
-  const getConversionStatus = async (): Promise<ConversionStatus> => {
-    return apiCall('/api/convert/status');
-  };
 
   return {
     convertText,

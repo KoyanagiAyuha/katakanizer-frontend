@@ -33,7 +33,6 @@ export interface LanguageStats {
 }
 
 export interface UserStats {
-  totalConversions: number;
   favoriteLanguages: LanguageStats[];
   thisMonthCount: number;
 }

@@ -6,7 +6,6 @@ interface SettingsTabProps {
   user: any;
   onLogout: () => void;
   stats: {
-    totalConversions: number;
     favoriteLanguages: any[];
     thisMonthCount: number;
   };
@@ -50,15 +49,9 @@ export default function SettingsTab({ user, onLogout, stats }: SettingsTabProps)
       {/* 利用統計 */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">利用統計</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-indigo-50 rounded-xl p-4">
-            <div className="text-2xl font-bold text-indigo-600">{stats.totalConversions}</div>
-            <div className="text-sm text-indigo-800">総変換数</div>
-          </div>
-          <div className="bg-purple-50 rounded-xl p-4">
-            <div className="text-2xl font-bold text-purple-600">{stats.thisMonthCount}</div>
-            <div className="text-sm text-purple-800">今月の変換数</div>
-          </div>
+        <div className="bg-purple-50 rounded-xl p-4">
+          <div className="text-2xl font-bold text-purple-600">{stats.thisMonthCount}</div>
+          <div className="text-sm text-purple-800">今月の変換数</div>
         </div>
 
         {stats.favoriteLanguages.length > 0 && (
