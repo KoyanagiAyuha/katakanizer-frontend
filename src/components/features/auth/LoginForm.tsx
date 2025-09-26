@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useApiService } from '../../../services/api';
+import { Button, FormInput, ErrorMessage, SuccessMessage, Card, PageHeader } from '../../ui';
 
 interface LoginFormProps {
   onSwitchToRegister?: () => void;
@@ -68,102 +69,106 @@ export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps
           </button>
         )}
 
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <Card className="shadow-xl">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent mb-2">
-              Katakanizer
-            </h1>
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">ログイン</h2>
-            <p className="text-gray-600">アカウントにサインインしてください</p>
+            <PageHeader
+              title="Katakanizer"
+              subtitle="ログイン"
+              description="アカウントにサインインしてください"
+              size="md"
+              className="mb-0"
+            />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <input
-                type="text"
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors text-gray-800 placeholder-gray-400"
-                placeholder="ユーザー名"
-                disabled={isLoading}
-                required
-                autoComplete="username"
-                suppressHydrationWarning
-              />
-            </div>
+            <FormInput
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="ユーザー名"
+              disabled={isLoading}
+              required
+              autoComplete="username"
+              variant="rounded"
+              inputSize="lg"
+              suppressHydrationWarning
+            />
 
-            <div>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors text-gray-800 placeholder-gray-400"
-                placeholder="パスワード"
-                disabled={isLoading}
-                required
-                autoComplete="current-password"
-                suppressHydrationWarning
-              />
-            </div>
+            <FormInput
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="パスワード"
+              disabled={isLoading}
+              required
+              autoComplete="current-password"
+              variant="rounded"
+              inputSize="lg"
+              suppressHydrationWarning
+            />
 
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-red-600 text-sm">{error}</p>
+              <ErrorMessage>
+                <p>{error}</p>
                 {(error.includes('メールアドレスが確認されていません') || error.includes('Email not verified')) && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={handleResendVerification}
-                    disabled={isResending}
-                    className="mt-3 text-sm text-blue-600 hover:text-blue-700 underline focus:outline-none"
+                    isLoading={isResending}
+                    loadingText="送信中..."
+                    className="mt-3 text-sm text-blue-600 hover:text-blue-700 underline bg-transparent border-none p-0 hover:bg-transparent"
                   >
-                    {isResending ? '送信中...' : '確認メールを再送信'}
-                  </button>
+                    確認メールを再送信
+                  </Button>
                 )}
-              </div>
+              </ErrorMessage>
             )}
 
             {resendMessage && (
-              <div className={`p-4 rounded-xl ${resendMessage.includes('失敗') ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
-                <p className={`text-sm ${resendMessage.includes('失敗') ? 'text-red-600' : 'text-green-600'}`}>
+              resendMessage.includes('失敗') ? (
+                <ErrorMessage>
                   {resendMessage}
-                </p>
-              </div>
+                </ErrorMessage>
+              ) : (
+                <SuccessMessage>
+                  {resendMessage}
+                </SuccessMessage>
+              )
             )}
 
-            <button
+            <Button
               type="submit"
-              disabled={isLoading || !username.trim() || !password.trim()}
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:hover:shadow-lg"
+              variant="primary"
+              size="lg"
+              className="w-full"
+              disabled={!username.trim() || !password.trim()}
+              isLoading={isLoading}
+              loadingText="ログイン中..."
               suppressHydrationWarning
             >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  ログイン中...
-                </div>
-              ) : (
-                'ログイン'
-              )}
-            </button>
+              ログイン
+            </Button>
           </form>
 
           {onSwitchToRegister && (
             <div className="text-center mt-8 pt-6 border-t border-gray-200">
               <p className="text-gray-600 mb-3">アカウントをお持ちでない方</p>
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={onSwitchToRegister}
-                className="text-pink-600 hover:text-pink-700 font-medium text-sm border-b border-pink-300 hover:border-pink-500 transition-colors"
                 disabled={isLoading}
+                className="text-pink-600 hover:text-pink-700 font-medium border-b border-pink-300 hover:border-pink-500 bg-transparent border-0 border-b-2 rounded-none hover:bg-transparent"
               >
                 新規登録はこちら
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

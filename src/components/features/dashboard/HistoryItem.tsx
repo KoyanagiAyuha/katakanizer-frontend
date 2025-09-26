@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { LanguageBadge, Button, Card } from '../../ui';
 
 interface HistoryItemProps {
   item: any;
@@ -10,20 +11,6 @@ interface HistoryItemProps {
 }
 
 export default function HistoryItem({ item, user, onClick, onFavoriteToggle }: HistoryItemProps) {
-  const getLanguageDisplay = (language: string) => {
-    const languages = {
-      'en': '🇺🇸 English',
-      'ko': '🇰🇷 Korean',
-      'fr': '🇫🇷 French',
-      'es': '🇪🇸 Spanish',
-      'de': '🇩🇪 German',
-      'it': '🇮🇹 Italian',
-      'pt': '🇵🇹 Portuguese',
-      'zh': '🇨🇳 Chinese',
-      'ja': '🇯🇵 Japanese'
-    };
-    return languages[language as keyof typeof languages] || language;
-  };
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -33,9 +20,10 @@ export default function HistoryItem({ item, user, onClick, onFavoriteToggle }: H
   };
 
   return (
-    <article
-      className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer"
+    <Card
+      variant="history"
       onClick={onClick}
+      padding="none"
     >
       {/* Post Header */}
       <div className="p-6 pb-4">
@@ -52,9 +40,11 @@ export default function HistoryItem({ item, user, onClick, onFavoriteToggle }: H
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button
+            <Button
+              variant="icon"
+              size="sm"
               onClick={handleFavoriteClick}
-              className={`p-2 rounded-full transition-all ${
+              className={`${
                 item.is_favorite
                   ? 'text-red-500 bg-red-50 hover:bg-red-100'
                   : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
@@ -74,10 +64,8 @@ export default function HistoryItem({ item, user, onClick, onFavoriteToggle }: H
                   d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                 />
               </svg>
-            </button>
-            <span className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full font-medium">
-              {getLanguageDisplay(item.language)}
-            </span>
+            </Button>
+            <LanguageBadge language={item.language} size="sm" />
           </div>
         </div>
 
@@ -110,6 +98,6 @@ export default function HistoryItem({ item, user, onClick, onFavoriteToggle }: H
           </div>
         </div>
       </div>
-    </article>
+    </Card>
   );
 }

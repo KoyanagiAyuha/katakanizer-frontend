@@ -8,6 +8,7 @@ import ConversionCreateModal from './ConversionCreateModal';
 import ConversionDetailModal from './ConversionDetailModal';
 import HistoryItem from './HistoryItem';
 import EmptyState from '../../ui/EmptyState';
+import { PageLoadingSpinner, InlineLoadingSpinner } from '../../ui/LoadingSpinner';
 
 interface DashboardProps {
   showCreateModal: boolean;
@@ -33,12 +34,14 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
   const [offset, setOffset] = useState(0);
   const ITEMS_PER_PAGE = 20;
   const lastRequestTimeRef = useRef(0);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // コンポーネントマウント時に履歴を読み込み
   useEffect(() => {
     let isCancelled = false;
 
     const loadHistory = async () => {
+      setIsInitialLoading(true);
       try {
         const apiHistory = await getRecentHistory(ITEMS_PER_PAGE, 0);
 
@@ -72,6 +75,10 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
         console.error('Failed to load history:', error);
         if (!isCancelled) {
           setHistory([]);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsInitialLoading(false);
         }
       }
     };
@@ -329,7 +336,9 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
         <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
           {/* History Feed */}
           <div className="space-y-6">
-            {history.length > 0 ? (
+            {isInitialLoading ? (
+              <PageLoadingSpinner />
+            ) : history.length > 0 ? (
               history.map((item) => (
                 <HistoryItem
                   key={item.id}
@@ -345,10 +354,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
             
             {/* Loading indicator for infinite scroll */}
             {isLoadingMore && (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                <span className="ml-3 text-gray-600">さらに読み込み中...</span>
-              </div>
+              <InlineLoadingSpinner text="さらに読み込み中..." />
             )}
             
             {/* End of results indicator */}

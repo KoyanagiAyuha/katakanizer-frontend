@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
+import { ButtonLoadingSpinner } from '../../ui/LoadingSpinner';
 
 interface RegisterFormProps {
   onSwitchToLogin?: () => void;
@@ -184,8 +185,8 @@ export default function RegisterForm({ onSwitchToLogin, onBack }: RegisterFormPr
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  登録中...
+                  <ButtonLoadingSpinner />
+                  <span className="ml-2">登録中...</span>
                 </div>
               ) : (
                 '無料で始める'

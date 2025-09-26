@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApiService } from '../../../services/api';
+import LoadingSpinner from '../../ui/LoadingSpinner';
 
 interface FavoritesTabProps {
   onHistoryClick?: (item: any) => void;
@@ -73,9 +74,7 @@ export default function FavoritesTab({ onHistoryClick }: FavoritesTabProps) {
     return (
       <div className="space-y-6">
         <h2 className="text-xl font-semibold text-gray-900">お気に入り</h2>
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-        </div>
+        <LoadingSpinner size="md" text="読み込み中..." />
       </div>
     );
   }

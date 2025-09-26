@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ButtonLoadingSpinner } from '../../ui/LoadingSpinner';
 
 interface ConversionCreateModalProps {
   isOpen: boolean;
@@ -135,8 +136,8 @@ export default function ConversionCreateModal({
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    変換中...
+                    <ButtonLoadingSpinner />
+                    <span className="ml-2">変換中...</span>
                   </div>
                 ) : (
                   '変換する'

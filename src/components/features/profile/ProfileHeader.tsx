@@ -54,29 +54,6 @@ export default function ProfileHeader({ user, stats, conversionStatus }: Profile
               </div>
             </div>
 
-            {/* 変換制限の詳細表示 */}
-            {conversionStatus && !conversionStatus.is_premium && (
-              <div className="mt-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-3">
-                <p className="text-xs text-gray-700">
-                  本日の残り変換回数: <span className="font-semibold text-indigo-600">{conversionStatus.remaining_conversions}回</span>
-                  {conversionStatus.remaining_conversions === 0 && (
-                    <span className="ml-2 text-gray-500">(明日リセットされます)</span>
-                  )}
-                </p>
-              </div>
-            )}
-
-            {/* プレミアムステータス */}
-            {conversionStatus && conversionStatus.is_premium && (
-              <div className="mt-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3">
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                  </svg>
-                  <p className="text-xs font-medium text-purple-900">プレミアムプラン - 無制限に変換できます</p>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

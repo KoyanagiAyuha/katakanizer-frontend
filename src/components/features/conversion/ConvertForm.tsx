@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Button, FormInput, FormTextarea, FormSelect, InfoMessage, LanguageBadge } from '../../ui';
 
 interface ConvertFormProps {
   onConvert: (title: string, text: string, language: string) => void;
@@ -44,88 +45,75 @@ export default function ConvertForm({ onConvert, isLoading }: ConvertFormProps) 
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* タイトルと言語選択 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-800 mb-2">
-            タイトル（任意）
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
-            placeholder="例: 好きな曲名やフレーズ名"
-            disabled={isLoading}
-          />
-        </div>
+        <FormInput
+          type="text"
+          id="title"
+          label="タイトル（任意）"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="例: 好きな曲名やフレーズ名"
+          disabled={isLoading}
+        />
 
-        <div>
-          <label htmlFor="language" className="block text-sm font-medium text-gray-800 mb-2">
-            言語
-          </label>
-          <select
-            id="language"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-            disabled={isLoading}
-          >
-            {languages.map((lang) => (
-              <option key={lang.code} value={lang.code}>
-                {lang.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FormSelect
+          id="language"
+          label="言語"
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          disabled={isLoading}
+        >
+          {languages.map((lang) => (
+            <option key={lang.code} value={lang.code}>
+              {lang.name}
+            </option>
+          ))}
+        </FormSelect>
       </div>
 
       {/* 変換スタイル説明 */}
-      <div className="text-sm text-gray-700 bg-blue-50 p-3 rounded-md border border-blue-200">
+      <InfoMessage size="sm">
         📝 両方のスタイルを自動生成します：カジュアル（自然な音）とフォーマル（正確な発音）
-      </div>
+      </InfoMessage>
 
       {/* テキスト入力 */}
-      <div>
-        <label 
-          htmlFor="text-input" 
-          className="block text-sm font-medium text-gray-800 mb-2"
-        >
-          {selectedLanguage.name}のテキストを入力してください
-        </label>
-        <textarea
-          id="text-input"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={`例: ${selectedLanguage.examples[0]}`}
-          className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-gray-900 placeholder-gray-500"
-          rows={4}
-          disabled={isLoading}
-        />
-      </div>
+      <FormTextarea
+        id="text-input"
+        label={`${selectedLanguage.name}のテキストを入力してください`}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={`例: ${selectedLanguage.examples[0]}`}
+        rows={4}
+        disabled={isLoading}
+      />
 
       {/* サンプル例 */}
       <div className="flex flex-wrap gap-2 mb-4">
         <span className="text-sm text-gray-500">サンプル:</span>
         {selectedLanguage.examples.map((example) => (
-          <button
+          <Button
             key={example}
-            type="button"
+            variant="secondary"
+            size="sm"
             onClick={() => handleExampleClick(example)}
-            className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
             disabled={isLoading}
+            className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full border-none"
           >
             {example}
-          </button>
+          </Button>
         ))}
       </div>
 
-      <button
+      <Button
         type="submit"
-        disabled={isLoading || !text.trim()}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-md transition-colors shadow-md hover:shadow-lg"
+        variant="primary"
+        size="lg"
+        className="w-full bg-blue-600 hover:bg-blue-700"
+        disabled={!text.trim()}
+        isLoading={isLoading}
+        loadingText="変換中..."
       >
-        {isLoading ? '変換中...' : '🎌 カタカナに変換'}
-      </button>
+        🎌 カタカナに変換
+      </Button>
     </form>
   );
 }

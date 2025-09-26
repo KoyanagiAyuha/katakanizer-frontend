@@ -5,6 +5,7 @@ import { useApiService } from '../../../services/api';
 import HistoryItem from '../dashboard/HistoryItem';
 import ConversionDetailModal from '../dashboard/ConversionDetailModal';
 import Toast, { useToast } from '../../ui/Toast';
+import { PageLoadingSpinner, InlineLoadingSpinner } from '../../ui/LoadingSpinner';
 
 interface FavoritesPageProps {
   onHistoryClick?: (item: any) => void;
@@ -159,9 +160,7 @@ export default function FavoritesPage({ onHistoryClick }: FavoritesPageProps) {
         <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
           <div className="space-y-6">
             {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-              </div>
+              <PageLoadingSpinner />
             ) : favorites.length > 0 ? (
               favorites.map((item) => (
                 <HistoryItem
@@ -184,10 +183,7 @@ export default function FavoritesPage({ onHistoryClick }: FavoritesPageProps) {
 
             {/* Loading indicator for infinite scroll */}
             {isLoadingMore && (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                <span className="ml-3 text-gray-600">さらに読み込み中...</span>
-              </div>
+              <InlineLoadingSpinner text="さらに読み込み中..." />
             )}
 
             {/* End of results indicator */}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useApiService } from '../../../services/api';
+import { PageLoadingSpinner, InlineLoadingSpinner, ButtonLoadingSpinner } from '../../ui/LoadingSpinner';
 
 interface WordMapping {
   line: string;
@@ -27,7 +28,7 @@ interface SearchPageProps {
 
 export default function SearchPage({ onHistoryClick }: SearchPageProps) {
   const { user } = useAuth();
-  const { searchHistory } = useApiService();
+  const { searchHistory, getRecentHistory } = useApiService();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [allHistory, setAllHistory] = useState<SearchResult[]>([]);
@@ -38,30 +39,47 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
   const [hasMore, setHasMore] = useState(true);
   const [searchOffset, setSearchOffset] = useState(0);
   const ITEMS_PER_PAGE = 20;
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  // 初期化時に全履歴を読み込み
+  // 初期化時に履歴を読み込み
   useEffect(() => {
-    const loadAllHistory = async () => {
+    const loadInitialData = async () => {
+      setIsInitialLoading(true);
       try {
-        // localStorageから履歴を読み込み
-        const savedHistory = localStorage.getItem('katakanizer_history');
-        if (savedHistory) {
-          const history = JSON.parse(savedHistory);
-          setAllHistory(history);
-          setSearchResults(history.slice(0, 20)); // 最初は最新20件を表示
-        }
+        // APIから最新の履歴を取得
+        const apiHistory = await getRecentHistory(ITEMS_PER_PAGE, 0);
 
-        // 最近の検索履歴を読み込み
+        // API履歴をフロントエンド形式に変換
+        const formattedHistory = apiHistory.map((item: any) => ({
+          id: item.id,
+          text: item.original_text,
+          title: item.title,
+          language: item.language,
+          timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
+          username: item.username,
+          result: {
+            title: item.title,
+            word_mappings: item.word_mappings
+          }
+        }));
+
+        setSearchResults(formattedHistory);
+        setHasMore(apiHistory.length === ITEMS_PER_PAGE);
+
+        // 最近の検索履歴を読み込み（これはlocalStorageから）
         const savedSearches = localStorage.getItem('recent_searches');
         if (savedSearches) {
           setRecentSearches(JSON.parse(savedSearches));
         }
       } catch (error) {
         console.error('Failed to load history:', error);
+        setSearchResults([]);
+      } finally {
+        setIsInitialLoading(false);
       }
     };
 
-    loadAllHistory();
+    loadInitialData();
   }, []);
 
   // 無限スクロール用の追加検索関数
@@ -287,8 +305,8 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
             >
               {isLoading ? (
                 <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  検索中...
+                  <ButtonLoadingSpinner />
+                  <span className="ml-2">検索中...</span>
                 </div>
               ) : (
                 '検索'
@@ -334,10 +352,8 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-          </div>
+        {isInitialLoading || isLoading ? (
+          <PageLoadingSpinner />
         ) : searchResults.length > 0 ? (
           <>
             <div className="space-y-4">
@@ -397,10 +413,7 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
             
             {/* Loading indicator for infinite scroll */}
             {isLoadingMore && (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                <span className="ml-3 text-gray-600">さらに読み込み中...</span>
-              </div>
+              <InlineLoadingSpinner text="さらに読み込み中..." />
             )}
             
             {/* End of results indicator */}

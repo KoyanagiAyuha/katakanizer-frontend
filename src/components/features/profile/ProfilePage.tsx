@@ -37,61 +37,27 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
     const loadMyHistory = async () => {
       setIsLoading(true);
       try {
-        // まずlocalStorageから履歴を読み込み
-        const savedHistory = localStorage.getItem('katakanizer_history');
-        if (savedHistory) {
-          const localHistory = JSON.parse(savedHistory);
-          setMyHistory(localHistory);
-          calculateStats(localHistory);
-        }
+        const apiHistory = await getMyHistory();
 
-        // APIから最新の履歴を取得
-        try {
-          const apiHistory = await getMyHistory();
-
-          // API履歴をフロントエンド形式に変換
-          const formattedHistory = apiHistory.map((item: any) => ({
-            id: item.id,
-            timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
-            text: item.original_text,
+        // API履歴をフロントエンド形式に変換
+        const formattedHistory = apiHistory.map((item: any) => ({
+          id: item.id,
+          timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
+          text: item.original_text,
+          title: item.title,
+          language: item.language,
+          is_favorite: item.is_favorite || false,
+          result: {
             title: item.title,
-            language: item.language,
-            is_favorite: item.is_favorite || false,
-            result: {
-              title: item.title,
-              word_mappings: item.word_mappings
-            }
-          }));
+            word_mappings: item.word_mappings
+          }
+        }));
 
-          // 既存のローカル履歴とマージ（重複を避ける）
-          const localHistory = savedHistory ? JSON.parse(savedHistory) : [];
-          const mergedHistory = [...formattedHistory];
-
-          // ローカル履歴でAPIに存在しないものを追加
-          localHistory.forEach((localItem: any) => {
-            const existsInApi = formattedHistory.some((apiItem: any) =>
-              apiItem.text === localItem.text &&
-              Math.abs(new Date(apiItem.timestamp).getTime() - new Date(localItem.timestamp).getTime()) < 60000
-            );
-            if (!existsInApi) {
-              mergedHistory.push(localItem);
-            }
-          });
-
-          // タイムスタンプでソート
-          mergedHistory.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-          setMyHistory(mergedHistory);
-          calculateStats(mergedHistory);
-
-          // localStorageを更新
-          localStorage.setItem('katakanizer_history', JSON.stringify(mergedHistory));
-        } catch (error) {
-          console.error('Failed to load API history:', error);
-          // エラーの場合はlocalStorageの履歴のみ使用
-        }
+        setMyHistory(formattedHistory);
+        calculateStats(formattedHistory);
       } catch (error) {
         console.error('Failed to load history:', error);
+        setMyHistory([]);
       } finally {
         setIsLoading(false);
       }
@@ -149,9 +115,6 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
       setMyHistory(updatedHistory);
       calculateStats(updatedHistory);
 
-      // Update localStorage
-      localStorage.setItem('katakanizer_history', JSON.stringify(updatedHistory));
-
       setDeleteConfirm(null);
     } catch (error) {
       console.error('削除に失敗しました:', error);
@@ -171,7 +134,6 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
         item.id === id ? { ...item, is_favorite: result.is_favorite } : item
       );
       setMyHistory(updatedHistory);
-      localStorage.setItem('katakanizer_history', JSON.stringify(updatedHistory));
     } catch (error) {
       console.error('Failed to update favorite:', error);
     }

@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useApiService } from '../../services/api';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
 function VerifyEmailPageContent() {
   const searchParams = useSearchParams();
@@ -53,10 +54,7 @@ function VerifyEmailPageContent() {
 
         <div className="bg-white shadow-md rounded-lg p-6">
           {status === 'loading' && (
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">確認中...</p>
-            </div>
+            <LoadingSpinner size="lg" color="blue" text="確認中..." />
           )}
 
           {status === 'success' && (
