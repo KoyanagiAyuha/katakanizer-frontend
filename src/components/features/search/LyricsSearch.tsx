@@ -43,6 +43,7 @@ export default function LyricsSearch({ refreshTrigger }: LyricsSearchProps) {
     if (!hasSearched) {
       loadRecentLyrics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadRecentLyrics = async () => {

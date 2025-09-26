@@ -7,11 +7,28 @@ import Dashboard from '../features/dashboard/Dashboard';
 import ProfilePage from '../features/profile/ProfilePage';
 import SearchPage from '../features/search/SearchPage';
 
+interface WordMapping {
+  line: string;
+  casual: string;
+  formal: string;
+}
+
+interface HistoryItem {
+  id: number;
+  title: string;
+  language: string;
+  timestamp: string;
+  result: {
+    title: string;
+    word_mappings: WordMapping[];
+  };
+}
+
 export default function MainApp() {
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState<'home' | 'search' | 'profile'>('home');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedHistory, setSelectedHistory] = useState<any>(null);
+  const [selectedHistory, setSelectedHistory] = useState<HistoryItem | null>(null);
 
   // ページ切り替え
   const handlePageChange = (page: 'home' | 'search' | 'profile') => {
@@ -26,7 +43,7 @@ export default function MainApp() {
   };
 
   // 履歴アイテムクリック（詳細表示）
-  const handleHistoryClick = (item: any) => {
+  const handleHistoryClick = (item: HistoryItem) => {
     setSelectedHistory(item);
   };
 
@@ -132,7 +149,7 @@ export default function MainApp() {
                   displayMode === 'casual' ? 'text-indigo-900' : 'text-purple-900'
                 } text-lg break-words overflow-hidden`} style={{ lineHeight: '3.5' }}>
                   <ruby className="whitespace-pre-wrap break-words">
-                    {selectedHistory.result.word_mappings?.map((mapping: any, index: number) => (
+                    {selectedHistory.result.word_mappings?.map((mapping: WordMapping, index: number) => (
                       <React.Fragment key={index}>
                         <span className="break-words">{mapping.line}</span>
                         <rt className="text-sm break-words">

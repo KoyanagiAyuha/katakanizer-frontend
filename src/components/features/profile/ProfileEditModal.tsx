@@ -38,18 +38,18 @@ export default function ProfileEditModal({ isOpen, onClose, currentUser, onUpdat
     e.preventDefault();
 
     if (newUsername === currentUser.username) {
-      addToast('info', '変更なし', 'ユーザー名が同じです');
+      addToast({ type: 'info', title: '変更なし', message: 'ユーザー名が同じです' });
       return;
     }
 
     setLoading(true);
     try {
       await updateUsername(newUsername);
-      addToast('success', '成功', 'ユーザー名を更新しました');
+      addToast({ type: 'success', title: '成功', message: 'ユーザー名を更新しました' });
       onUpdate();
       setTimeout(() => onClose(), 1500);
     } catch (error: any) {
-      addToast('error', 'エラー', error.message || 'ユーザー名の更新に失敗しました');
+      addToast({ type: 'error', title: 'エラー', message: error.message || 'ユーザー名の更新に失敗しました' });
     } finally {
       setLoading(false);
     }
@@ -59,23 +59,23 @@ export default function ProfileEditModal({ isOpen, onClose, currentUser, onUpdat
     e.preventDefault();
 
     if (newEmail === currentUser.email) {
-      addToast('info', '変更なし', 'メールアドレスが同じです');
+      addToast({ type: 'info', title: '変更なし', message: 'メールアドレスが同じです' });
       return;
     }
 
     if (!emailPassword) {
-      addToast('error', 'エラー', 'パスワードを入力してください');
+      addToast({ type: 'error', title: 'エラー', message: 'パスワードを入力してください' });
       return;
     }
 
     setLoading(true);
     try {
       await updateEmail(newEmail, emailPassword);
-      addToast('success', '成功', 'メールアドレスを更新しました。確認メールをご確認ください。');
+      addToast({ type: 'success', title: '成功', message: 'メールアドレスを更新しました。確認メールをご確認ください。' });
       onUpdate();
       setTimeout(() => onClose(), 1500);
     } catch (error: any) {
-      addToast('error', 'エラー', error.message || 'メールアドレスの更新に失敗しました');
+      addToast({ type: 'error', title: 'エラー', message: error.message || 'メールアドレスの更新に失敗しました' });
     } finally {
       setLoading(false);
       setEmailPassword('');
@@ -86,25 +86,25 @@ export default function ProfileEditModal({ isOpen, onClose, currentUser, onUpdat
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      addToast('error', 'エラー', '新しいパスワードが一致しません');
+      addToast({ type: 'error', title: 'エラー', message: '新しいパスワードが一致しません' });
       return;
     }
 
     if (newPassword.length < 8) {
-      addToast('error', 'エラー', 'パスワードは8文字以上である必要があります');
+      addToast({ type: 'error', title: 'エラー', message: 'パスワードは8文字以上である必要があります' });
       return;
     }
 
     setLoading(true);
     try {
       await updatePassword(currentPassword, newPassword);
-      addToast('success', '成功', 'パスワードを更新しました');
+      addToast({ type: 'success', title: '成功', message: 'パスワードを更新しました' });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => onClose(), 1500);
     } catch (error: any) {
-      addToast('error', 'エラー', error.message || 'パスワードの更新に失敗しました');
+      addToast({ type: 'error', title: 'エラー', message: error.message || 'パスワードの更新に失敗しました' });
     } finally {
       setLoading(false);
     }
@@ -295,7 +295,7 @@ export default function ProfileEditModal({ isOpen, onClose, currentUser, onUpdat
         </div>
       </div>
 
-      <Toast toasts={toasts} removeToast={removeToast} />
+      <Toast toasts={toasts} onRemove={removeToast} />
     </>
   );
 }

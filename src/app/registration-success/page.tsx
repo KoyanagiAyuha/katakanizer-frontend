@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useApiService } from '../../services/api';
 
-export default function RegistrationSuccessPage() {
+function RegistrationSuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { resendVerificationEmail } = useApiService();
@@ -140,5 +140,13 @@ export default function RegistrationSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegistrationSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RegistrationSuccessPageContent />
+    </Suspense>
   );
 }

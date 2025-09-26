@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface NavigationProps {
@@ -48,7 +48,7 @@ export default function Navigation({ currentPage, onPageChange, onCreateClick }:
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => onPageChange(item.id as any)}
+                onClick={() => onPageChange(item.id as 'home' | 'search' | 'profile')}
                 className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-colors duration-200 w-full ${
                   currentPage === item.id
                     ? 'bg-indigo-50 text-indigo-600'
@@ -111,7 +111,7 @@ export default function Navigation({ currentPage, onPageChange, onCreateClick }:
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => onPageChange(item.id as any)}
+              onClick={() => onPageChange(item.id as 'home' | 'search' | 'profile')}
               className={`flex flex-col items-center justify-center p-2 transition-colors duration-200 ${
                 currentPage === item.id ? 'text-indigo-600' : 'text-gray-600'
               }`}

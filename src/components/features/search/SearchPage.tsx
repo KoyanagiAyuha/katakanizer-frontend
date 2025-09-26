@@ -4,16 +4,33 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useApiService } from '../../../services/api';
 
+interface WordMapping {
+  line: string;
+  casual: string;
+  formal: string;
+}
+
+interface SearchResult {
+  id: number;
+  title: string;
+  language: string;
+  timestamp: string;
+  result: {
+    title: string;
+    word_mappings: WordMapping[];
+  };
+}
+
 interface SearchPageProps {
-  onHistoryClick?: (item: any) => void;
+  onHistoryClick?: (item: SearchResult) => void;
 }
 
 export default function SearchPage({ onHistoryClick }: SearchPageProps) {
   const { user } = useAuth();
   const { searchHistory } = useApiService();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [allHistory, setAllHistory] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [allHistory, setAllHistory] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -103,6 +120,7 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, isLoadingMore, searchOffset, searchResults, searchQuery, selectedLanguage]);
 
   // 検索実行
@@ -361,7 +379,7 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-4">
                       <div className="text-indigo-900" style={{ lineHeight: '2.5' }}>
                         <ruby className="text-base">
-                          {item.result.word_mappings?.slice(0, 8).map((mapping: any, index: number) => (
+                          {item.result.word_mappings?.slice(0, 8).map((mapping: WordMapping, index: number) => (
                             <React.Fragment key={index}>
                               <span>{mapping.line}</span>
                               <rt className="text-xs text-indigo-600">{mapping.casual}</rt>
