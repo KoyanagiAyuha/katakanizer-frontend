@@ -1,13 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import LoginForm from '../components/LoginForm';
-import RegisterForm from '../components/RegisterForm';
-import MainApp from '../components/MainApp';
+import LoginForm from '../components/features/auth/LoginForm';
+import RegisterForm from '../components/features/auth/RegisterForm';
+import MainApp from '../components/layout/MainApp';
 
 const LandingPage = () => {
   const { user, loading } = useAuth();
+  const router = useRouter();
   const [showAuth, setShowAuth] = useState<'login' | 'register' | null>(null);
 
   if (loading) {
@@ -89,13 +91,13 @@ const LandingPage = () => {
 
             <div className="flex space-x-4">
               <button
-                onClick={() => setShowAuth('register')}
+                onClick={() => router.push('/signup')}
                 className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-3 rounded-full font-medium hover:from-pink-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 無料で始める
               </button>
               <button
-                onClick={() => setShowAuth('login')}
+                onClick={() => router.push('/login')}
                 className="border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-full font-medium hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
               >
                 ログイン
@@ -113,7 +115,7 @@ const LandingPage = () => {
                 <div className="space-y-4">
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="text-sm text-gray-500 mb-1">入力</div>
-                    <div className="text-gray-800 font-medium">"I called you yesterday"</div>
+                    <div className="text-gray-800 font-medium">&ldquo;I called you yesterday&rdquo;</div>
                   </div>
                   
                   <div className="grid grid-cols-1 gap-3">
@@ -166,13 +168,6 @@ const LandingPage = () => {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="mt-20 py-8 border-t border-gray-200 bg-white/50">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <p className="text-gray-500">© 2024 Katakanizer. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 };

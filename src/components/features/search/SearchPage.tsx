@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useApiService } from '../services/api';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useApiService } from '../../../services/api';
 
 interface SearchPageProps {
   onHistoryClick?: (item: any) => void;

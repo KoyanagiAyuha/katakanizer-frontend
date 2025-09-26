@@ -4,13 +4,14 @@ interface ApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
   body?: any;
+  signal?: AbortSignal;
 }
 
 export function useApi() {
   const { getValidToken } = useAuth();
 
   const apiCall = async <T = any>(endpoint: string, options: ApiOptions = {}): Promise<T> => {
-    const { method = 'GET', headers = {}, body } = options;
+    const { method = 'GET', headers = {}, body, signal } = options;
     
     // 有効なトークンを取得
     const token = await getValidToken();
@@ -29,6 +30,7 @@ export function useApi() {
     const requestConfig: RequestInit = {
       method,
       headers: defaultHeaders,
+      signal,
     };
 
     // ボディがある場合は追加

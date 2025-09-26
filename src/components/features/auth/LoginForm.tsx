@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useApiService } from '../../../services/api';
 
 interface LoginFormProps {
   onSwitchToRegister?: () => void;
@@ -10,13 +11,17 @@ interface LoginFormProps {
 
 export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps) {
   const { login, isLoading, error, clearError } = useAuth();
+  const { resendVerificationEmail } = useApiService();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-    
+    setResendMessage('');
+
     if (!username.trim() || !password.trim()) {
       return;
     }
@@ -25,6 +30,25 @@ export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps
       await login(username.trim(), password);
     } catch (err) {
       // エラーは AuthContext で処理済み
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    setResendMessage('');
+
+    try {
+      // ユーザー名からメールアドレスを取得する必要があるため、
+      // エラーメッセージからメールアドレスを推測するか、
+      // またはユーザー名をメールアドレスとして扱う
+      const emailToUse = username.includes('@') ? username : `${username}@example.com`;
+
+      await resendVerificationEmail(emailToUse);
+      setResendMessage('確認メールを再送信しました。メールをご確認ください。');
+    } catch (err) {
+      setResendMessage('メール送信に失敗しました。しばらく経ってから再度お試しください。');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -65,6 +89,8 @@ export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps
                 placeholder="ユーザー名"
                 disabled={isLoading}
                 required
+                autoComplete="username"
+                suppressHydrationWarning
               />
             </div>
 
@@ -78,12 +104,32 @@ export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps
                 placeholder="パスワード"
                 disabled={isLoading}
                 required
+                autoComplete="current-password"
+                suppressHydrationWarning
               />
             </div>
 
             {error && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
                 <p className="text-red-600 text-sm">{error}</p>
+                {(error.includes('メールアドレスが確認されていません') || error.includes('Email not verified')) && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={isResending}
+                    className="mt-3 text-sm text-blue-600 hover:text-blue-700 underline focus:outline-none"
+                  >
+                    {isResending ? '送信中...' : '確認メールを再送信'}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {resendMessage && (
+              <div className={`p-4 rounded-xl ${resendMessage.includes('失敗') ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
+                <p className={`text-sm ${resendMessage.includes('失敗') ? 'text-red-600' : 'text-green-600'}`}>
+                  {resendMessage}
+                </p>
               </div>
             )}
 
@@ -91,6 +137,7 @@ export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps
               type="submit"
               disabled={isLoading || !username.trim() || !password.trim()}
               className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:hover:shadow-lg"
+              suppressHydrationWarning
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">

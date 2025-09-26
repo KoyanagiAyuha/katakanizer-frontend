@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface RegisterFormProps {
   onSwitchToLogin?: () => void;
@@ -10,6 +11,7 @@ interface RegisterFormProps {
 
 export default function RegisterForm({ onSwitchToLogin, onBack }: RegisterFormProps) {
   const { register, isLoading, error, clearError } = useAuth();
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,13 +42,17 @@ export default function RegisterForm({ onSwitchToLogin, onBack }: RegisterFormPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-    
+
     if (!validateForm()) {
       return;
     }
 
     try {
-      await register(username.trim(), email.trim(), password);
+      const result = await register(username.trim(), email.trim(), password);
+      // 登録成功したら登録成功ページへリダイレクト（メールアドレスをパラメータとして渡す）
+      if (result) {
+        router.push(`/registration-success?email=${encodeURIComponent(email.trim())}`);
+      }
     } catch (err) {
       // エラーは AuthContext で処理済み
     }
@@ -89,6 +95,7 @@ export default function RegisterForm({ onSwitchToLogin, onBack }: RegisterFormPr
                 placeholder="ユーザー名"
                 disabled={isLoading}
                 required
+                suppressHydrationWarning
               />
               <p className="text-xs text-gray-500 mt-1">3-30文字、英数字とアンダースコア</p>
             </div>
@@ -103,6 +110,7 @@ export default function RegisterForm({ onSwitchToLogin, onBack }: RegisterFormPr
                 placeholder="メールアドレス"
                 disabled={isLoading}
                 required
+                suppressHydrationWarning
               />
             </div>
 
@@ -116,6 +124,7 @@ export default function RegisterForm({ onSwitchToLogin, onBack }: RegisterFormPr
                 placeholder="パスワード"
                 disabled={isLoading}
                 required
+                suppressHydrationWarning
               />
             </div>
 

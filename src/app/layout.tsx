@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import Footer from "@/components/layout/Footer";
+import CookieConsent from "@/components/ui/CookieConsent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Katakanizer - 多言語カタカナ発音変換ツール",
-  description: "英語、韓国語、フランス語など多言語をカタカナ発音に変換し、歌詞管理もできるWebアプリケーション",
+  title: "Katakanizer - ネイティブ発音カタカナ変換ツール",
+  description: "英語などの外国語をネイティブスピーカーの発音に近いカタカナに変換。カタカナ英語から脱却し、自然な発音を身につける学習支援ツール",
 };
 
 export default function RootLayout({
@@ -26,10 +28,14 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <AuthProvider>
-          {children}
+          <div className="flex-grow">
+            {children}
+          </div>
+          <Footer />
+          <CookieConsent />
         </AuthProvider>
       </body>
     </html>

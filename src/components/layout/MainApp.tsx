@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import Navigation from './Navigation';
-import Dashboard from './Dashboard';
-import ProfilePage from './ProfilePage';
-import SearchPage from './SearchPage';
+import Dashboard from '../features/dashboard/Dashboard';
+import ProfilePage from '../features/profile/ProfilePage';
+import SearchPage from '../features/search/SearchPage';
 
 export default function MainApp() {
   const { user } = useAuth();
@@ -49,17 +49,17 @@ export default function MainApp() {
       {/* メインコンテンツ */}
       <div className="min-h-screen">
         {currentPage === 'home' && (
-          <Dashboard 
+          <Dashboard
             showCreateModal={showCreateModal}
             setShowCreateModal={setShowCreateModal}
             onHistoryClick={handleHistoryClick}
           />
         )}
-        
+
         {currentPage === 'search' && (
           <SearchPage onHistoryClick={handleHistoryClick} />
         )}
-        
+
         {currentPage === 'profile' && (
           <ProfilePage onHistoryClick={handleHistoryClick} />
         )}

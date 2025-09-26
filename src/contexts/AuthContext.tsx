@@ -224,7 +224,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const userData = await response.json();
-      await login(username, password);
+      // 登録成功 - 自動ログインはしない
+      return userData;
     } catch (err) {
       setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
       throw err;

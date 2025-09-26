@@ -1,5 +1,38 @@
 import { useApi } from '../hooks/useApi';
 
+// 認証不要のAPIを呼び出すための関数
+async function publicApiCall<T = any>(endpoint: string, options: any = {}): Promise<T> {
+  const { method = 'GET', headers = {}, body } = options;
+
+  const defaultHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...headers,
+  };
+
+  const requestConfig: RequestInit = {
+    method,
+    headers: defaultHeaders,
+  };
+
+  if (body && method !== 'GET') {
+    requestConfig.body = typeof body === 'string' ? body : JSON.stringify(body);
+  }
+
+  const response = await fetch(`http://localhost:8000${endpoint}`, requestConfig);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `API エラー: ${response.status}`);
+  }
+
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return await response.json();
+  }
+
+  return response as any;
+}
+
 // API呼び出し用の型定義
 export interface ConvertRequest {
   text: string;
@@ -27,16 +60,19 @@ export interface HistoryItem {
   }>;
   language: string;
   created_at: string;
+  username?: string;
+  is_favorite?: boolean;
 }
 
 // APIサービス用カスタムフック
 export function useApiService() {
   const { apiCall } = useApi();
 
-  const convertText = async (request: ConvertRequest): Promise<ConvertResponse> => {
+  const convertText = async (request: ConvertRequest, signal?: AbortSignal): Promise<ConvertResponse> => {
     return apiCall<ConvertResponse>('/api/convert', {
       method: 'POST',
       body: request,
+      signal,
     });
   };
 
@@ -62,11 +98,110 @@ export function useApiService() {
     });
   };
 
+  // お気に入り関連のAPI
+  const addToFavorites = async (conversionId: number): Promise<{ message: string; is_favorite: boolean }> => {
+    return apiCall<{ message: string; is_favorite: boolean }>(`/api/favorites/${conversionId}`, {
+      method: 'POST',
+    });
+  };
+
+  const removeFromFavorites = async (conversionId: number): Promise<{ message: string }> => {
+    return apiCall<{ message: string }>(`/api/favorites/${conversionId}`, {
+      method: 'DELETE',
+    });
+  };
+
+  const getMyFavorites = async (limit: number = 20, offset: number = 0): Promise<HistoryItem[]> => {
+    const params = new URLSearchParams({ limit: limit.toString(), offset: offset.toString() });
+    return apiCall<HistoryItem[]>(`/api/favorites/my?${params.toString()}`);
+  };
+
+  const checkFavoriteStatus = async (conversionId: number): Promise<{ is_favorite: boolean }> => {
+    return apiCall<{ is_favorite: boolean }>(`/api/favorites/check/${conversionId}`);
+  };
+
+  // 認証不要のエンドポイント
+  const verifyEmail = async (token: string): Promise<{ message: string }> => {
+    return publicApiCall<{ message: string }>('/api/auth/verify-email', {
+      method: 'POST',
+      body: { token },
+    });
+  };
+
+  const resendVerificationEmail = async (email: string): Promise<{ message: string }> => {
+    return publicApiCall<{ message: string }>('/api/auth/resend-verification', {
+      method: 'POST',
+      body: { email },
+    });
+  };
+
+  const requestPasswordReset = async (email: string): Promise<{ message: string }> => {
+    return publicApiCall<{ message: string }>('/api/auth/request-password-reset', {
+      method: 'POST',
+      body: { email },
+    });
+  };
+
+  const resetPassword = async (token: string, newPassword: string): Promise<{ message: string }> => {
+    return publicApiCall<{ message: string }>('/api/auth/reset-password', {
+      method: 'POST',
+      body: { token, new_password: newPassword },
+    });
+  };
+
+  // プロフィール関連のAPI
+  const getProfile = async (): Promise<any> => {
+    return apiCall('/api/profile/me');
+  };
+
+  const updateUsername = async (newUsername: string): Promise<{ message: string; username: string }> => {
+    return apiCall<{ message: string; username: string }>('/api/profile/username', {
+      method: 'PUT',
+      body: { new_username: newUsername },
+    });
+  };
+
+  const updateEmail = async (newEmail: string, password: string): Promise<{ message: string; email: string }> => {
+    return apiCall<{ message: string; email: string }>('/api/profile/email', {
+      method: 'PUT',
+      body: { new_email: newEmail, password },
+    });
+  };
+
+  const updatePassword = async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
+    return apiCall<{ message: string }>('/api/profile/password', {
+      method: 'PUT',
+      body: { current_password: currentPassword, new_password: newPassword },
+    });
+  };
+
+  const getUsageStats = async (): Promise<any> => {
+    return apiCall('/api/profile/usage/stats');
+  };
+
+  const getConversionStatus = async (): Promise<any> => {
+    return apiCall('/api/convert/status');
+  };
+
   return {
     convertText,
     getMyHistory,
     searchHistory,
     getRecentHistory,
     deleteHistory,
+    addToFavorites,
+    removeFromFavorites,
+    getMyFavorites,
+    checkFavoriteStatus,
+    verifyEmail,
+    resendVerificationEmail,
+    requestPasswordReset,
+    resetPassword,
+    getProfile,
+    updateUsername,
+    updateEmail,
+    updatePassword,
+    getUsageStats,
+    getConversionStatus,
   };
 }
