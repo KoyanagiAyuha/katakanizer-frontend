@@ -34,22 +34,28 @@ export default function ProfileHeader({ user, stats, conversionStatus }: Profile
 
             {/* 統計情報 */}
             <div className="flex justify-center md:justify-start space-x-8">
-              {conversionStatus && !conversionStatus.is_premium && (
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-indigo-600">
-                    {conversionStatus.daily_limit - conversionStatus.remaining_conversions}/{conversionStatus.daily_limit}
-                  </div>
-                  <div className="text-sm text-gray-600">今日の変換</div>
-                </div>
-              )}
-              {conversionStatus && conversionStatus.is_premium && (
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-indigo-600">∞</div>
-                  <div className="text-sm text-gray-600">無制限</div>
-                </div>
-              )}
               <div className="text-center">
-                <div className="text-2xl font-bold text-pink-600">{stats.favoriteLanguages.length}</div>
+                <div className="text-2xl font-bold text-indigo-600">
+                  {!conversionStatus ? (
+                    <span className="inline-block animate-pulse bg-indigo-100 rounded w-12 h-7">&nbsp;</span>
+                  ) : conversionStatus.is_premium ? (
+                    '∞'
+                  ) : (
+                    `${conversionStatus.daily_limit - conversionStatus.remaining_conversions}/${conversionStatus.daily_limit}`
+                  )}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {conversionStatus?.is_premium ? '無制限' : '今日の変換'}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-pink-600">
+                  {stats.favoriteLanguages.length === 0 && !conversionStatus ? (
+                    <span className="inline-block animate-pulse bg-pink-100 rounded w-8 h-7">&nbsp;</span>
+                  ) : (
+                    stats.favoriteLanguages.length
+                  )}
+                </div>
                 <div className="text-sm text-gray-600">使用言語</div>
               </div>
             </div>
