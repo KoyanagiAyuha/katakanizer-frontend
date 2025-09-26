@@ -36,69 +36,54 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
 
   // コンポーネントマウント時に履歴を読み込み
   useEffect(() => {
+    let isCancelled = false;
+
     const loadHistory = async () => {
       try {
-        // まずlocalStorageから履歴を読み込み
-        const savedHistory = localStorage.getItem('katakanizer_history');
-        if (savedHistory) {
-          setHistory(JSON.parse(savedHistory));
+        const apiHistory = await getRecentHistory(ITEMS_PER_PAGE, 0);
+
+        // コンポーネントがアンマウントされた場合は処理を中断
+        if (isCancelled) {
+          return;
         }
 
-        // APIから最新の公開履歴を取得してマージ
-        try {
-          const apiHistory = await getRecentHistory(ITEMS_PER_PAGE, 0);
-          setOffset(ITEMS_PER_PAGE);
-          
-          // API履歴をフロントエンド形式に変換
-          const formattedHistory = apiHistory.map((item: any) => ({
-            id: item.id,
-            timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
-            text: item.original_text,
+        setOffset(ITEMS_PER_PAGE);
+
+        // API履歴をフロントエンド形式に変換
+        const formattedHistory = apiHistory.map((item: any) => ({
+          id: item.id,
+          timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
+          text: item.original_text,
+          title: item.title,
+          language: item.language,
+          username: item.username,
+          is_favorite: item.is_favorite || false,
+          result: {
             title: item.title,
-            language: item.language,
-            username: item.username,  // APIから取得したユーザー名を保持
-            is_favorite: item.is_favorite || false,
-            result: {
-              title: item.title,
-              word_mappings: item.word_mappings
-            }
-          }));
+            word_mappings: item.word_mappings
+          }
+        }));
 
-          // 既存のローカル履歴とマージ（重複を避ける）
-          const localHistory = savedHistory ? JSON.parse(savedHistory) : [];
-          const mergedHistory = [...formattedHistory];
-          
-          // ローカル履歴でAPIに存在しないものを追加
-          localHistory.forEach((localItem: any) => {
-            const existsInApi = formattedHistory.some((apiItem: any) => 
-              apiItem.text === localItem.text && 
-              Math.abs(new Date(apiItem.timestamp).getTime() - new Date(localItem.timestamp).getTime()) < 60000
-            );
-            if (!existsInApi) {
-              mergedHistory.push(localItem);
-            }
-          });
-
-          // タイムスタンプでソート
-          mergedHistory.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          
-          setHistory(mergedHistory);
+        if (!isCancelled) {
+          setHistory(formattedHistory);
           setHasMore(apiHistory.length === ITEMS_PER_PAGE);
-          
-          // localStorageを更新
-          localStorage.setItem('katakanizer_history', JSON.stringify(mergedHistory));
-        } catch (error) {
-          console.error('Failed to load history:', error);
-          // エラーの場合はlocalStorageの履歴のみ使用
         }
       } catch (error) {
         console.error('Failed to load history:', error);
+        if (!isCancelled) {
+          setHistory([]);
+        }
       }
     };
 
     if (user) {
       loadHistory();
     }
+
+    // クリーンアップ関数
+    return () => {
+      isCancelled = true;
+    };
   }, [user]);
 
   // 無限スクロール用の追加データ読み込み関数
@@ -137,9 +122,6 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
       setHistory(updatedHistory);
       setOffset(offset + ITEMS_PER_PAGE);
       setHasMore(newHistory.length === ITEMS_PER_PAGE);
-
-      // localStorageを更新
-      localStorage.setItem('katakanizer_history', JSON.stringify(updatedHistory));
     } catch (error) {
       console.error('Failed to load more history:', error);
     } finally {
@@ -218,21 +200,42 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
       }
       
       setResult(data);
-        
-        // 履歴に追加
-        const newHistoryItem = {
-          id: Date.now(),
-          timestamp: new Date().toLocaleString('ja-JP'),
-          text: text.trim(),
-          title: title.trim() || `${new Date().toLocaleDateString('ja-JP')} 変換`,
-          language,
-          result: data,
-        };
-        const updatedHistory = [newHistoryItem, ...history];
-        setHistory(updatedHistory);
-        
-        // localStorageにも保存
-        localStorage.setItem('katakanizer_history', JSON.stringify(updatedHistory));
+
+        // サーバーから返されたデータを使って履歴に追加
+        if (data.id) {
+          const newHistoryItem = {
+            id: data.id,
+            timestamp: new Date().toLocaleString('ja-JP'),
+            text: text.trim(),
+            title: data.title || title.trim() || `${new Date().toLocaleDateString('ja-JP')} 変換`,
+            language,
+            username: user?.username,
+            is_favorite: false,
+            result: {
+              title: data.title,
+              word_mappings: data.word_mappings
+            }
+          };
+          const updatedHistory = [newHistoryItem, ...history];
+          setHistory(updatedHistory);
+        } else {
+          // 履歴を再取得して最新状態を反映
+          const apiHistory = await getRecentHistory(ITEMS_PER_PAGE, 0);
+          const formattedHistory = apiHistory.map((item: any) => ({
+            id: item.id,
+            timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
+            text: item.original_text,
+            title: item.title,
+            language: item.language,
+            username: item.username,
+            is_favorite: item.is_favorite || false,
+            result: {
+              title: item.title,
+              word_mappings: item.word_mappings
+            }
+          }));
+          setHistory(formattedHistory);
+        }
         
         // 成功トーストに更新
         updateToast(toastId, {
@@ -304,7 +307,6 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
         item.id === id ? { ...item, is_favorite: result.is_favorite } : item
       );
       setHistory(updatedHistory);
-      localStorage.setItem('katakanizer_history', JSON.stringify(updatedHistory));
     } catch (error) {
       console.error('Failed to update favorite:', error);
       addToast({

@@ -48,6 +48,7 @@ export interface ConvertRequest {
 }
 
 export interface ConvertResponse {
+  id: number;
   title: string;
   word_mappings: Array<{
     line: string;
