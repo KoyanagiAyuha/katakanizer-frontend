@@ -24,7 +24,6 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [stats, setStats] = useState({
     favoriteLanguages: [] as { language: string; count: number }[],
-    thisMonthCount: 0,
   });
   const [conversionStatus, setConversionStatus] = useState<{
     can_convert: boolean;
@@ -131,18 +130,11 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
       .sort((a, b) => (b.count as number) - (a.count as number))
       .slice(0, 5);
 
-    // 今月の変換数を計算
-    const thisMonth = new Date().getMonth();
-    const thisYear = new Date().getFullYear();
-    const thisMonthCount = history.filter(item => {
-      const itemDate = new Date(item.timestamp);
-      return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
-    }).length;
-
-    setStats({
+    // 言語統計のみ更新（月間使用回数はAPIから取得）
+    setStats(prev => ({
+      ...prev,
       favoriteLanguages,
-      thisMonthCount,
-    });
+    }));
   };
 
   const handleDelete = async () => {

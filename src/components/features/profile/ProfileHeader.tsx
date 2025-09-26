@@ -6,7 +6,6 @@ interface ProfileHeaderProps {
   user: any;
   stats: {
     favoriteLanguages: any[];
-    thisMonthCount: number;
   };
   conversionStatus: {
     can_convert: boolean;
@@ -35,10 +34,6 @@ export default function ProfileHeader({ user, stats, conversionStatus }: Profile
 
             {/* 統計情報 */}
             <div className="flex justify-center md:justify-start space-x-8">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.thisMonthCount}</div>
-                <div className="text-sm text-gray-600">今月の変換</div>
-              </div>
               {conversionStatus && !conversionStatus.is_premium && (
                 <div className="text-center">
                   <div className="text-2xl font-bold text-indigo-600">

@@ -204,8 +204,11 @@ export function useApiService() {
   };
 
   interface UsageStats {
-      this_month: number;
-    last_month: number;
+    daily_usage: number;
+    monthly_usage: number;
+    daily_limit: number;
+    is_premium: boolean;
+    premium_expires_at?: string;
   }
 
   const getUsageStats = async (): Promise<UsageStats> => {
