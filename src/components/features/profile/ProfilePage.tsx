@@ -109,7 +109,7 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
 
     const favoriteLanguages = Object.entries(languageCount)
       .map(([language, count]) => ({ language, count }))
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => (b.count as number) - (a.count as number))
       .slice(0, 5);
 
     // 今月の変換数を計算

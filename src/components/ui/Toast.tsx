@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 export interface ToastItem {
   id: string;
@@ -26,6 +26,13 @@ const Toast: React.FC<ToastProps> = ({ toasts, onRemove }) => {
 const ToastItem: React.FC<{ toast: ToastItem; onRemove: (id: string) => void }> = ({ toast, onRemove }) => {
   const [isExiting, setIsExiting] = useState(false);
 
+  const handleClose = useCallback(() => {
+    setIsExiting(true);
+    setTimeout(() => {
+      onRemove(toast.id);
+    }, 300); // アニメーション時間
+  }, [onRemove, toast.id]);
+
   useEffect(() => {
     if (toast.duration && toast.duration > 0) {
       const timer = setTimeout(() => {
@@ -33,14 +40,7 @@ const ToastItem: React.FC<{ toast: ToastItem; onRemove: (id: string) => void }> 
       }, toast.duration);
       return () => clearTimeout(timer);
     }
-  }, [toast.duration, toast.id]);
-
-  const handleClose = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      onRemove(toast.id);
-    }, 300); // アニメーション時間
-  };
+  }, [toast.duration, toast.id, handleClose]);
 
   const getTypeStyles = () => {
     switch (toast.type) {

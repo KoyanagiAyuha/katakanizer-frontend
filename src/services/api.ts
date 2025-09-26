@@ -1,7 +1,13 @@
 import { useApi } from '../hooks/useApi';
 
 // 認証不要のAPIを呼び出すための関数
-async function publicApiCall<T = any>(endpoint: string, options: any = {}): Promise<T> {
+interface ApiOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  headers?: Record<string, string>;
+  body?: unknown;
+}
+
+async function publicApiCall<T = unknown>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const { method = 'GET', headers = {}, body } = options;
 
   const defaultHeaders: Record<string, string> = {
@@ -18,7 +24,8 @@ async function publicApiCall<T = any>(endpoint: string, options: any = {}): Prom
     requestConfig.body = typeof body === 'string' ? body : JSON.stringify(body);
   }
 
-  const response = await fetch(`http://localhost:8000${endpoint}`, requestConfig);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const response = await fetch(`${apiUrl}${endpoint}`, requestConfig);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -30,7 +37,7 @@ async function publicApiCall<T = any>(endpoint: string, options: any = {}): Prom
     return await response.json();
   }
 
-  return response as any;
+  return response as T;
 }
 
 // API呼び出し用の型定義
@@ -150,7 +157,17 @@ export function useApiService() {
   };
 
   // プロフィール関連のAPI
-  const getProfile = async (): Promise<any> => {
+  interface ProfileResponse {
+    id: number;
+    username: string;
+    email: string;
+    is_active: boolean;
+    is_email_verified: boolean;
+    is_premium: boolean;
+    created_at: string;
+  }
+
+  const getProfile = async (): Promise<ProfileResponse> => {
     return apiCall('/api/profile/me');
   };
 
@@ -175,11 +192,23 @@ export function useApiService() {
     });
   };
 
-  const getUsageStats = async (): Promise<any> => {
+  interface UsageStats {
+    total_conversions: number;
+    this_month: number;
+    last_month: number;
+  }
+
+  const getUsageStats = async (): Promise<UsageStats> => {
     return apiCall('/api/profile/usage/stats');
   };
 
-  const getConversionStatus = async (): Promise<any> => {
+  interface ConversionStatus {
+    daily_limit: number;
+    daily_used: number;
+    is_premium: boolean;
+  }
+
+  const getConversionStatus = async (): Promise<ConversionStatus> => {
     return apiCall('/api/convert/status');
   };
 

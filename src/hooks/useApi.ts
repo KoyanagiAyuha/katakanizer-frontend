@@ -3,14 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 interface ApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   signal?: AbortSignal;
 }
 
 export function useApi() {
   const { getValidToken } = useAuth();
 
-  const apiCall = async <T = any>(endpoint: string, options: ApiOptions = {}): Promise<T> => {
+  const apiCall = async <T = unknown>(endpoint: string, options: ApiOptions = {}): Promise<T> => {
     const { method = 'GET', headers = {}, body, signal } = options;
     
     // 有効なトークンを取得
@@ -39,7 +39,8 @@ export function useApi() {
     }
 
     // API呼び出し
-    const response = await fetch(`http://localhost:8000${endpoint}`, requestConfig);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}${endpoint}`, requestConfig);
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -60,7 +61,7 @@ export function useApi() {
       return await response.json();
     }
     
-    return response as any;
+    return response as T;
   };
 
   return { apiCall };

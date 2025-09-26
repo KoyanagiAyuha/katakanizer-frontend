@@ -67,11 +67,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initializeAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchCurrentUser = async (authToken: string) => {
     try {
-      const response = await fetch('http://localhost:8000/api/auth/me', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
@@ -113,7 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsRefreshing(true);
     
     try {
-      const response = await fetch('http://localhost:8000/api/auth/refresh', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -169,7 +172,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -210,7 +214,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/register', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -238,7 +243,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // サーバー側でリフレッシュトークンを無効化
     if (token) {
       try {
-        await fetch('http://localhost:8000/api/auth/logout', {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        await fetch(`${apiUrl}/api/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
