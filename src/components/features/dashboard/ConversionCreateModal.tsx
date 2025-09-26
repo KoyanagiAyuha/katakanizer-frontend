@@ -110,14 +110,26 @@ export default function ConversionCreateModal({
             {/* Action Buttons */}
             <div className="flex space-x-3 pt-4">
               <button
-                onClick={onClose}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClose();
+                }}
                 className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-colors"
                 disabled={isLoading}
               >
                 キャンセル
               </button>
               <button
-                onClick={onConvert}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!isLoading && text.trim()) {
+                    onConvert();
+                  }
+                }}
                 disabled={!text.trim() || isLoading}
                 className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:hover:shadow-lg"
               >

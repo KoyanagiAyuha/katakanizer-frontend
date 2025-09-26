@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useApiService } from '../../../services/api';
 import Toast, { useToast } from '../../ui/Toast';
@@ -32,6 +32,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
   const abortControllerRef = useRef<AbortController | null>(null);
   const [offset, setOffset] = useState(0);
   const ITEMS_PER_PAGE = 20;
+  const lastRequestTimeRef = useRef(0);
 
   // コンポーネントマウント時に履歴を読み込み
   useEffect(() => {
@@ -163,13 +164,32 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
     return () => window.removeEventListener('scroll', handleScroll);
   }, [hasMore, isLoadingMore, offset, history]);
 
-  const handleConvert = async () => {
+  const handleConvert = useCallback(async () => {
     if (!text.trim()) return;
 
-    // AbortControllerを作成
+    // デバウンス処理：前回のリクエストから1秒未満の場合はスキップ
+    const now = Date.now();
+    if (now - lastRequestTimeRef.current < 1000) {
+      console.log('Request debounced - too soon after last request');
+      return;
+    }
+    lastRequestTimeRef.current = now;
+
+    // 既に処理中の場合は何もしない
+    if (isLoading || isConverting) {
+      console.log('Already processing, skipping duplicate request');
+      return;
+    }
+
+    // 前のリクエストがあればキャンセル
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // 新しいAbortControllerを作成
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-    
+
     setIsLoading(true);
     setIsConverting(true);
     
@@ -243,7 +263,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
       setIsConverting(false);
       abortControllerRef.current = null;
     }
-  };
+  }, [text, title, language, isLoading, isConverting, convertText, history, addToast, removeToast, updateToast]);
 
   // リロード時の警告を設定
   useEffect(() => {
