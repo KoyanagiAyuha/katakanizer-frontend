@@ -18,6 +18,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Katakanizer - ネイティブ発音カタカナ変換ツール",
   description: "英語などの外国語をネイティブスピーカーの発音に近いカタカナに変換。カタカナ英語から脱却し、自然な発音を身につける学習支援ツール",
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/icon-192.svg',
+  },
+  openGraph: {
+    title: "Katakanizer - ネイティブ発音カタカナ変換ツール",
+    description: "英語などの外国語をネイティブスピーカーの発音に近いカタカナに変換",
+    images: ['/og-image.svg'],
+  },
 };
 
 export default function RootLayout({

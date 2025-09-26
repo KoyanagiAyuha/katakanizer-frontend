@@ -39,9 +39,7 @@ export default function Navigation({ currentPage, onPageChange, onCreateClick }:
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-white border-r border-gray-200 z-30">
         <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
           <div className="flex items-center flex-shrink-0 px-4 mb-8">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Katakanizer
-            </h1>
+            <img src="/logo-header.svg" alt="Katakanizer" className="h-10 w-auto" />
           </div>
           
           <nav className="mt-5 flex-1 px-2 space-y-2">
