@@ -10,8 +10,7 @@
     </linearGradient>
   </defs>
 
-  <!-- 背景 -->
-  <rect width="192" height="192" rx="40" fill="url(#bgGrad192)"/>
+  <!-- 背景（透過）- コメントアウトまたは削除 -->
 
   <!-- 大きな「カ」 -->
   <g transform="translate(96, 96) scale(3)">

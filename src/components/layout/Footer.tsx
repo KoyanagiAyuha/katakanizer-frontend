@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="bg-white border-t border-gray-200 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,7 +21,6 @@ export default function Footer() {
 
             {/* リーガル */}
             <div>
-              <h4 className="font-semibold text-gray-700 mb-3">法的情報</h4>
               <ul className="space-y-2">
                 <li>
                   <Link
@@ -42,7 +43,6 @@ export default function Footer() {
 
             {/* サポート */}
             <div>
-              <h4 className="font-semibold text-gray-700 mb-3">サポート</h4>
               <ul className="space-y-2">
                 <li>
                   <Link
@@ -66,7 +66,7 @@ export default function Footer() {
 
           <div className="mt-8 pt-8 border-t border-gray-200">
             <p className="text-center text-sm text-gray-500">
-              © 2025 Katakanizer. All rights reserved.
+              © {currentYear} Katakanizer. All rights reserved.
             </p>
           </div>
         </div>
