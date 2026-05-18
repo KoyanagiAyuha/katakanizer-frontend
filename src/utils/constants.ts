@@ -50,3 +50,6 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
   { code: 'de', name: 'ドイツ語' },
   { code: 'es', name: 'スペイン語' },
 ];
+
+/** Google AdSense パブリッシャーID */
+export const ADSENSE_CLIENT_ID = 'ca-pub-2107585083110270';
