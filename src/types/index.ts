@@ -1,8 +1,9 @@
-// User types
+// User types (matches backend UserResponse)
 export interface User {
   id: number;
   username: string;
-  email: string;
+  is_premium: boolean;
+  created_at: string;
 }
 
 // Conversion types
@@ -23,6 +24,8 @@ export interface ConversionHistoryItem {
   text: string;
   title: string;
   language: string;
+  is_favorite: boolean;
+  username?: string;
   result: ConversionResult;
 }
 
@@ -42,6 +45,18 @@ export interface ConvertRequest {
   text: string;
   title: string;
   language: string;
+}
+
+// Profile types (matches backend UserProfileResponse)
+export interface ProfileResponse {
+  id: number;
+  username: string;
+  is_premium: boolean;
+  premium_expires_at: string | null;
+  daily_usage: number;
+  daily_limit: number;
+  remaining_conversions: number;
+  created_at: string;
 }
 
 // Modal types

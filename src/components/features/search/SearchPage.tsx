@@ -1,26 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useApiService } from '../../../services/api';
 import { PageLoadingSpinner, InlineLoadingSpinner, ButtonLoadingSpinner } from '../../ui/LoadingSpinner';
+import { ConversionHistoryItem, WordMapping } from '../../../types';
+import { formatApiHistory, getLanguageLabel } from '../../../utils/formatting';
+import { LANGUAGE_FILTER_OPTIONS } from '../../../utils/constants';
 
-interface WordMapping {
-  line: string;
-  casual: string;
-  formal: string;
-}
-
-interface SearchResult {
-  id: number;
-  title: string;
-  language: string;
-  timestamp: string;
-  result: {
-    title: string;
-    word_mappings: WordMapping[];
-  };
-}
+type SearchResult = ConversionHistoryItem & { username?: string };
 
 interface SearchPageProps {
   onHistoryClick?: (item: SearchResult) => void;
@@ -28,7 +16,7 @@ interface SearchPageProps {
 
 export default function SearchPage({ onHistoryClick }: SearchPageProps) {
   const { user } = useAuth();
-  const { searchHistory, getRecentHistory } = useApiService();
+  const { getRecentHistory } = useApiService();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [allHistory, setAllHistory] = useState<SearchResult[]>([]);
@@ -46,27 +34,16 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
     const loadInitialData = async () => {
       setIsInitialLoading(true);
       try {
-        // APIから最新の履歴を取得
         const apiHistory = await getRecentHistory(ITEMS_PER_PAGE, 0);
-
-        // API履歴をフロントエンド形式に変換
-        const formattedHistory = apiHistory.map((item: any) => ({
-          id: item.id,
-          text: item.original_text,
-          title: item.title,
-          language: item.language,
-          timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
+        const formattedHistory: SearchResult[] = apiHistory.map(item => ({
+          ...formatApiHistory(item),
           username: item.username,
-          result: {
-            title: item.title,
-            word_mappings: item.word_mappings
-          }
         }));
 
         setSearchResults(formattedHistory);
+        setAllHistory(formattedHistory);
         setHasMore(apiHistory.length === ITEMS_PER_PAGE);
 
-        // 最近の検索履歴を読み込み（これはlocalStorageから）
         const savedSearches = localStorage.getItem('recent_searches');
         if (savedSearches) {
           setRecentSearches(JSON.parse(savedSearches));
@@ -80,48 +57,41 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
     };
 
     loadInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 無限スクロール用の追加検索関数
-  const loadMoreSearch = async () => {
-    if (isLoadingMore || !hasMore || (!searchQuery.trim() && !selectedLanguage)) return;
-    
+  // 無限スクロール用の追加読み込み関数
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+
     setIsLoadingMore(true);
     try {
-      const newApiResults = await searchHistory(searchQuery || '', selectedLanguage || undefined, searchOffset);
-      
+      const newOffset = searchOffset + ITEMS_PER_PAGE;
+      const newApiResults = await getRecentHistory(ITEMS_PER_PAGE, newOffset);
+
       if (newApiResults.length === 0) {
         setHasMore(false);
         return;
       }
 
-      // API結果をフロントエンド形式に変換
-      const formattedNewResults = newApiResults.map(apiItem => ({
-        id: apiItem.id,
-        title: apiItem.title,
-        text: apiItem.original_text,
-        language: apiItem.language,
-        timestamp: new Date(apiItem.created_at).toLocaleString('ja-JP'),
-        result: {
-          title: apiItem.title,
-          word_mappings: apiItem.word_mappings
-        }
+      const formattedNewResults: SearchResult[] = newApiResults.map(item => ({
+        ...formatApiHistory(item),
+        username: item.username,
       }));
 
-      // 重複を除いて追加
-      const existingIds = new Set(searchResults.map(item => item.id));
-      const uniqueNewResults = formattedNewResults.filter(item => !existingIds.has(item.id));
-
-      const updatedResults = [...searchResults, ...uniqueNewResults];
-      setSearchResults(updatedResults);
-      setSearchOffset(searchOffset + ITEMS_PER_PAGE);
+      setSearchResults(prev => {
+        const existingIds = new Set(prev.map(item => item.id));
+        const uniqueNewResults = formattedNewResults.filter(item => !existingIds.has(item.id));
+        return [...prev, ...uniqueNewResults];
+      });
+      setSearchOffset(newOffset);
       setHasMore(newApiResults.length === ITEMS_PER_PAGE);
     } catch (error) {
-      console.error('Failed to load more search results:', error);
+      console.error('Failed to load more results:', error);
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [isLoadingMore, hasMore, searchOffset, getRecentHistory]);
 
   // スクロールイベントリスナー
   useEffect(() => {
@@ -129,84 +99,46 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const scrollHeight = document.documentElement.scrollHeight;
       const clientHeight = document.documentElement.clientHeight;
-      
-      // 画面の底から200px以内にスクロールしたら次のページを読み込み
-      if (scrollTop + clientHeight >= scrollHeight - 200 && hasMore && !isLoadingMore && (searchQuery.trim() || selectedLanguage)) {
-        loadMoreSearch();
+
+      if (scrollTop + clientHeight >= scrollHeight - 200 && hasMore && !isLoadingMore) {
+        loadMore();
       }
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMore, isLoadingMore, searchOffset, searchResults, searchQuery, selectedLanguage]);
+  }, [hasMore, isLoadingMore, loadMore]);
 
-  // 検索実行
-  const handleSearch = async () => {
+  // 検索実行（ローカルフィルタリング）
+  const handleSearch = useCallback(() => {
     if (!searchQuery.trim() && !selectedLanguage) {
-      setSearchResults(allHistory.slice(0, 20));
-      setHasMore(false);
-      setSearchOffset(0);
+      setSearchResults(allHistory);
       return;
     }
 
     setIsLoading(true);
-    setSearchOffset(0);
-    setHasMore(true);
     try {
-      // ローカル検索を実行
-      const localResults = allHistory.filter(item => {
-        const matchesSearch = !searchQuery.trim() || 
+      const filtered = allHistory.filter(item => {
+        const matchesSearch = !searchQuery.trim() ||
           item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.text.toLowerCase().includes(searchQuery.toLowerCase());
-        
+
         const matchesLanguage = !selectedLanguage || item.language === selectedLanguage;
-        
+
         return matchesSearch && matchesLanguage;
       });
 
-      setSearchResults(localResults);
+      setSearchResults(filtered);
 
-      // 最近の検索に追加
-      const updatedSearches = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 10);
-      setRecentSearches(updatedSearches);
-      localStorage.setItem('recent_searches', JSON.stringify(updatedSearches));
-
-      // バックエンドAPI検索を実行
-      try {
-        const apiResults = await searchHistory(searchQuery || '', selectedLanguage || undefined, 0);
-        setSearchOffset(ITEMS_PER_PAGE);
-        setHasMore(apiResults.length === ITEMS_PER_PAGE);
-        // APIの結果をマージして重複除去
-        const combinedResults = [...localResults];
-        apiResults.forEach(apiItem => {
-          if (!localResults.some(localItem => localItem.id === apiItem.id)) {
-            combinedResults.push({
-              id: apiItem.id,
-              title: apiItem.title,
-              text: apiItem.original_text,
-              language: apiItem.language,
-              timestamp: new Date(apiItem.created_at).toLocaleString('ja-JP'),
-              result: {
-                title: apiItem.title,
-                word_mappings: apiItem.word_mappings
-              }
-            });
-          }
-        });
-        setSearchResults(combinedResults);
-        setHasMore(apiResults.length === ITEMS_PER_PAGE);
-      } catch (error) {
-        console.error('API search failed:', error);
-        // API失敗時はローカル検索結果のみ使用
-        setSearchResults(localResults);
+      if (searchQuery.trim()) {
+        const updatedSearches = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 10);
+        setRecentSearches(updatedSearches);
+        localStorage.setItem('recent_searches', JSON.stringify(updatedSearches));
       }
-    } catch (error) {
-      console.error('Search failed:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchQuery, selectedLanguage, allHistory, recentSearches]);
 
   // エンターキーで検索
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -227,22 +159,7 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
   const clearSearch = () => {
     setSearchQuery('');
     setSelectedLanguage('');
-    setSearchResults(allHistory.slice(0, 20));
-  };
-
-  const getLanguageLabel = (language: string) => {
-    const labels: { [key: string]: string } = {
-      en: '🇺🇸 英語',
-      ko: '🇰🇷 韓国語',
-      fr: '🇫🇷 フランス語',
-      es: '🇪🇸 スペイン語',
-      de: '🇩🇪 ドイツ語',
-      it: '🇮🇹 イタリア語',
-      pt: '🇵🇹 ポルトガル語',
-      zh: '🇨🇳 中国語',
-      ja: '🇯🇵 日本語'
-    };
-    return labels[language] || language;
+    setSearchResults(allHistory);
   };
 
   return (
@@ -286,16 +203,11 @@ export default function SearchPage({ onHistoryClick }: SearchPageProps) {
               onChange={(e) => setSelectedLanguage(e.target.value)}
               className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-gray-900"
             >
-              <option value="">全ての言語</option>
-              <option value="en">🇺🇸 英語</option>
-              <option value="ko">🇰🇷 韓国語</option>
-              <option value="fr">🇫🇷 フランス語</option>
-              <option value="es">🇪🇸 スペイン語</option>
-              <option value="de">🇩🇪 ドイツ語</option>
-              <option value="it">🇮🇹 イタリア語</option>
-              <option value="pt">🇵🇹 ポルトガル語</option>
-              <option value="zh">🇨🇳 中国語</option>
-              <option value="ja">🇯🇵 日本語</option>
+              {LANGUAGE_FILTER_OPTIONS.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.name}
+                </option>
+              ))}
             </select>
             
             <button

@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../../utils/config';
+import { LANGUAGE_FILTER_OPTIONS } from '../../../utils/constants';
+import { getLanguageLabel, formatDateShortJP } from '../../../utils/formatting';
 
 interface HistoryEntry {
   id: number;
@@ -11,15 +14,6 @@ interface HistoryEntry {
   language: string;
   created_at: string;
 }
-
-const languages = [
-  { code: '', name: '全ての言語' },
-  { code: 'en', name: '英語' },
-  { code: 'ko', name: '韓国語' },
-  { code: 'fr', name: 'フランス語' },
-  { code: 'de', name: 'ドイツ語' },
-  { code: 'es', name: 'スペイン語' },
-];
 
 export default function ConversionSearch() {
   const [query, setQuery] = useState('');
@@ -37,7 +31,7 @@ export default function ConversionSearch() {
   const loadRecentConversions = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/history/recent?limit=10');
+      const response = await fetch(`${API_BASE_URL}/api/history/recent?limit=10`);
       if (response.ok) {
         const data = await response.json();
         setResults(data);
@@ -68,7 +62,7 @@ export default function ConversionSearch() {
         limit: '20'
       });
 
-      const response = await fetch(`http://localhost:8000/api/history/search?${params}`);
+      const response = await fetch(`${API_BASE_URL}/api/history/search?${params}`);
       if (response.ok) {
         const data = await response.json();
         setResults(data);
@@ -80,17 +74,6 @@ export default function ConversionSearch() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const getLanguageName = (code: string) => {
-    return languages.find(lang => lang.code === code)?.name || code;
-  };
 
   const createRubyDisplay = (originalText: string, casualKatakana: string, formalKatakana: string) => {
     // 改行で行分割
@@ -199,7 +182,7 @@ export default function ConversionSearch() {
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               disabled={isLoading}
             >
-              {languages.map((lang) => (
+              {LANGUAGE_FILTER_OPTIONS.map((lang) => (
                 <option key={lang.code} value={lang.code}>
                   {lang.name}
                 </option>
@@ -249,9 +232,9 @@ export default function ConversionSearch() {
                 <h3 className="text-lg font-semibold text-gray-900">{entry.title}</h3>
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
                   <span className="bg-gray-100 px-2 py-1 rounded text-xs">
-                    {getLanguageName(entry.language)}
+                    {getLanguageLabel(entry.language)}
                   </span>
-                  <span className="text-xs">{formatDate(entry.created_at)}</span>
+                  <span className="text-xs">{formatDateShortJP(entry.created_at)}</span>
                 </div>
               </div>
               

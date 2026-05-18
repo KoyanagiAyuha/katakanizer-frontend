@@ -1,73 +1,49 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApiService } from '../../../services/api';
 import LoadingSpinner from '../../ui/LoadingSpinner';
+import { ConversionHistoryItem, WordMapping } from '../../../types';
+import { formatApiHistory } from '../../../utils/formatting';
+import { getLanguageLabel } from '../../../utils/formatting';
 
 interface FavoritesTabProps {
-  onHistoryClick?: (item: any) => void;
+  onHistoryClick?: (item: ConversionHistoryItem) => void;
 }
 
 export default function FavoritesTab({ onHistoryClick }: FavoritesTabProps) {
   const { getMyFavorites, removeFromFavorites } = useApiService();
-  const [favorites, setFavorites] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<ConversionHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadFavorites();
-  }, []);
-
-  const loadFavorites = async () => {
+  const loadFavorites = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await getMyFavorites(50, 0);
-
-      const formattedFavorites = data.map((item: any) => ({
-        id: item.id,
-        timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
-        text: item.original_text,
-        title: item.title,
-        language: item.language,
-        username: item.username,
+      const formattedFavorites = data.map(item => ({
+        ...formatApiHistory(item),
         is_favorite: true,
-        result: {
-          title: item.title,
-          word_mappings: item.word_mappings
-        }
       }));
-
       setFavorites(formattedFavorites);
     } catch (error) {
       console.error('Failed to load favorites:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getMyFavorites]);
+
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
 
   const handleFavoriteToggle = async (id: number) => {
     try {
       await removeFromFavorites(id);
-      // お気に入りリストから削除
       const updatedFavorites = favorites.filter(item => item.id !== id);
       setFavorites(updatedFavorites);
     } catch (error) {
       console.error('Failed to update favorite:', error);
     }
-  };
-
-  const getLanguageLabel = (language: string) => {
-    const labels: { [key: string]: string } = {
-      'en': '🇺🇸 English',
-      'ko': '🇰🇷 Korean',
-      'fr': '🇫🇷 French',
-      'es': '🇪🇸 Spanish',
-      'de': '🇩🇪 German',
-      'it': '🇮🇹 Italian',
-      'pt': '🇵🇹 Portuguese',
-      'zh': '🇨🇳 Chinese',
-      'ja': '🇯🇵 Japanese'
-    };
-    return labels[language] || language;
   };
 
   if (isLoading) {
@@ -158,7 +134,7 @@ export default function FavoritesTab({ onHistoryClick }: FavoritesTabProps) {
 
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4">
                 <div className="text-indigo-900 text-sm leading-relaxed">
-                  {item.result.word_mappings?.slice(0, 3).map((mapping: any, index: number) => (
+                  {item.result.word_mappings?.slice(0, 3).map((mapping: WordMapping, index: number) => (
                     <ruby key={index} className="mr-1">
                       <span>{mapping.line}</span>
                       <rt className="text-xs">{mapping.casual}</rt>

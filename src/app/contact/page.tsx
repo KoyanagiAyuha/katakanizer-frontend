@@ -1,11 +1,13 @@
 import BackToHomeButton from '@/components/ui/BackToHomeButton';
+import Footer from '@/components/layout/Footer';
 
 export default function ContactPage() {
   // Google フォームのURL
   const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSfLWGL-wXwGDnRwFohzwSbJeo0fjtcmvp1hIHENwbNQtd_wzA/viewform';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 py-12 px-4">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-pink-50 to-purple-50">
+      <div className="flex-grow py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <BackToHomeButton />
         <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -76,6 +78,8 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

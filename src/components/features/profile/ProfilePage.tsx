@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useApiService } from '../../../services/api';
 import ProfileHeader from './ProfileHeader';
@@ -9,21 +9,23 @@ import HistoryTab from './HistoryTab';
 import FavoritesTab from './FavoritesTab';
 import SettingsTab from './SettingsTab';
 import DeleteConfirmModal from './DeleteConfirmModal';
+import { ConversionHistoryItem, LanguageStats } from '../../../types';
+import { formatApiHistory } from '../../../utils/formatting';
 
 interface ProfilePageProps {
-  onHistoryClick?: (item: any) => void;
+  onHistoryClick?: (item: ConversionHistoryItem) => void;
 }
 
 export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
-  const { user, logout } = useAuth();
-  const { getMyHistory, deleteHistory, addToFavorites, getConversionStatus } = useApiService();
-  const [myHistory, setMyHistory] = useState<any[]>([]);
+  const { user, logout, updateUserInfo } = useAuth();
+  const { getMyHistory, deleteHistory, toggleFavorite, getConversionStatus } = useApiService();
+  const [myHistory, setMyHistory] = useState<ConversionHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'favorites' | 'profile'>('history');
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [stats, setStats] = useState({
-    favoriteLanguages: [] as { language: string; count: number }[],
+    favoriteLanguages: [] as LanguageStats[],
   });
   const [conversionStatus, setConversionStatus] = useState<{
     can_convert: boolean;
@@ -32,27 +34,30 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
     is_premium: boolean;
   } | null>(null);
 
+  const calculateStats = useCallback((history: ConversionHistoryItem[]) => {
+    const languageCount: Record<string, number> = {};
+    history.forEach(item => {
+      languageCount[item.language] = (languageCount[item.language] || 0) + 1;
+    });
+
+    const favoriteLanguages = Object.entries(languageCount)
+      .map(([language, count]) => ({ language, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    setStats(prev => ({
+      ...prev,
+      favoriteLanguages,
+    }));
+  }, []);
+
   // 自分の変換履歴を読み込み
   useEffect(() => {
     const loadMyHistory = async () => {
       setIsLoading(true);
       try {
         const apiHistory = await getMyHistory();
-
-        // API履歴をフロントエンド形式に変換
-        const formattedHistory = apiHistory.map((item: any) => ({
-          id: item.id,
-          timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
-          text: item.original_text,
-          title: item.title,
-          language: item.language,
-          is_favorite: item.is_favorite || false,
-          result: {
-            title: item.title,
-            word_mappings: item.word_mappings
-          }
-        }));
-
+        const formattedHistory = apiHistory.map(formatApiHistory);
         setMyHistory(formattedHistory);
         calculateStats(formattedHistory);
       } catch (error) {
@@ -66,7 +71,8 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
     if (user) {
       loadMyHistory();
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, calculateStats]);
 
   // 変換ステータスを取得
   useEffect(() => {
@@ -82,26 +88,8 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
     if (user) {
       loadStatus();
     }
-  }, [user, myHistory]); // 履歴が更新されるたびにステータスも更新
-
-  const calculateStats = (history: any[]) => {
-    // 言語別の使用回数を計算
-    const languageCount: { [key: string]: number } = {};
-    history.forEach(item => {
-      languageCount[item.language] = (languageCount[item.language] || 0) + 1;
-    });
-
-    const favoriteLanguages = Object.entries(languageCount)
-      .map(([language, count]) => ({ language, count }))
-      .sort((a, b) => (b.count as number) - (a.count as number))
-      .slice(0, 5);
-
-    // 言語統計のみ更新（月間使用回数はAPIから取得）
-    setStats(prev => ({
-      ...prev,
-      favoriteLanguages,
-    }));
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, myHistory]);
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;
@@ -110,7 +98,6 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
     try {
       await deleteHistory(deleteConfirm.id);
 
-      // Remove from local state
       const updatedHistory = myHistory.filter(item => item.id !== deleteConfirm.id);
       setMyHistory(updatedHistory);
       calculateStats(updatedHistory);
@@ -124,12 +111,10 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
     }
   };
 
-  const handleFavoriteToggle = async (id: number, isFavorite: boolean) => {
+  const handleFavoriteToggle = async (id: number) => {
     try {
-      // APIを呼び出してトグル
-      const result = await addToFavorites(id);
+      const result = await toggleFavorite(id);
 
-      // 履歴のお気に入り状態を更新
       const updatedHistory = myHistory.map(item =>
         item.id === id ? { ...item, is_favorite: result.is_favorite } : item
       );
@@ -161,7 +146,13 @@ export default function ProfilePage({ onHistoryClick }: ProfilePageProps) {
           <SettingsTab
             user={user}
             onLogout={logout}
-            stats={stats}
+            stats={{
+              ...stats,
+              thisMonthCount: conversionStatus?.daily_limit
+                ? conversionStatus.daily_limit - conversionStatus.remaining_conversions
+                : 0,
+            }}
+            onUsernameUpdate={(newUsername) => updateUserInfo({ username: newUsername })}
           />
         )}
       </div>

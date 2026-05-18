@@ -21,7 +21,7 @@ export default function RegisterForm({ onSwitchToLogin, onBack }: RegisterFormPr
 
   const validateForm = () => {
     setFormError(null);
-    
+
     if (!username.trim() || !email.trim() || !password || !confirmPassword) {
       setFormError('すべての項目を入力してください');
       return false;
@@ -32,8 +32,8 @@ export default function RegisterForm({ onSwitchToLogin, onBack }: RegisterFormPr
       return false;
     }
 
-    if (password.length < 8) {
-      setFormError('パスワードは8文字以上で入力してください');
+    if (password.length < 6) {
+      setFormError('パスワードは6文字以上で入力してください');
       return false;
     }
 
@@ -49,13 +49,10 @@ export default function RegisterForm({ onSwitchToLogin, onBack }: RegisterFormPr
     }
 
     try {
-      const result = await register(username.trim(), email.trim(), password);
-      // 登録成功したら登録成功ページへリダイレクト（メールアドレスをパラメータとして渡す）
-      if (result) {
-        router.push(`/registration-success?email=${encodeURIComponent(email.trim())}`);
-      }
-    } catch (err) {
-      // エラーは AuthContext で処理済み
+      await register(email.trim(), password, username.trim());
+      router.push(`/registration-success?email=${encodeURIComponent(email.trim())}`);
+    } catch {
+      // Error is handled by AuthContext
     }
   };
 
@@ -155,25 +152,7 @@ export default function RegisterForm({ onSwitchToLogin, onBack }: RegisterFormPr
                   <svg className="w-3 h-3 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  最低8文字
-                </li>
-                <li className="flex items-center">
-                  <svg className="w-3 h-3 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  大文字・小文字を含む
-                </li>
-                <li className="flex items-center">
-                  <svg className="w-3 h-3 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  数字を含む
-                </li>
-                <li className="flex items-center">
-                  <svg className="w-3 h-3 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  特殊文字を含む
+                  最低6文字
                 </li>
               </ul>
             </div>

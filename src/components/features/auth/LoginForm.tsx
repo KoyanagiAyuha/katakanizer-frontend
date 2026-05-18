@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useApiService } from '../../../services/api';
 import { Button, FormInput, ErrorMessage, SuccessMessage, Card, PageHeader } from '../../ui';
 
 interface LoginFormProps {
@@ -11,9 +12,9 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps) {
-  const { login, isLoading, error, clearError } = useAuth();
-  const { resendVerificationEmail } = useApiService();
-  const [username, setUsername] = useState('');
+  const router = useRouter();
+  const { login, resendVerificationEmail, isLoading, error, clearError } = useAuth();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isResending, setIsResending] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
@@ -23,14 +24,16 @@ export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps
     clearError();
     setResendMessage('');
 
-    if (!username.trim() || !password.trim()) {
+    if (!email.trim() || !password.trim()) {
       return;
     }
 
     try {
-      await login(username.trim(), password);
+      await login(email.trim(), password);
     } catch (err) {
-      // エラーは AuthContext で処理済み
+      if (err instanceof Error && err.message === 'メールアドレスが確認されていません') {
+        router.push(`/registration-success?email=${encodeURIComponent(email.trim())}`);
+      }
     }
   };
 
@@ -39,14 +42,9 @@ export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps
     setResendMessage('');
 
     try {
-      // ユーザー名からメールアドレスを取得する必要があるため、
-      // エラーメッセージからメールアドレスを推測するか、
-      // またはユーザー名をメールアドレスとして扱う
-      const emailToUse = username.includes('@') ? username : `${username}@example.com`;
-
-      await resendVerificationEmail(emailToUse);
+      await resendVerificationEmail();
       setResendMessage('確認メールを再送信しました。メールをご確認ください。');
-    } catch (err) {
+    } catch {
       setResendMessage('メール送信に失敗しました。しばらく経ってから再度お試しください。');
     } finally {
       setIsResending(false);
@@ -83,14 +81,14 @@ export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <FormInput
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="ユーザー名"
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="メールアドレス"
               disabled={isLoading}
               required
-              autoComplete="username"
+              autoComplete="email"
               variant="rounded"
               inputSize="lg"
               suppressHydrationWarning
@@ -145,13 +143,22 @@ export default function LoginForm({ onSwitchToRegister, onBack }: LoginFormProps
               variant="primary"
               size="lg"
               className="w-full"
-              disabled={!username.trim() || !password.trim()}
+              disabled={!email.trim() || !password.trim()}
               isLoading={isLoading}
               loadingText="ログイン中..."
               suppressHydrationWarning
             >
               ログイン
             </Button>
+
+            <div className="text-center">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-pink-600 hover:text-pink-700 hover:underline"
+              >
+                パスワードをお忘れですか？
+              </Link>
+            </div>
           </form>
 
           {onSwitchToRegister && (

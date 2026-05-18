@@ -2,41 +2,23 @@
 
 import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useApiService } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 function RegistrationSuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { resendVerificationEmail } = useApiService();
-
+  const { resendVerificationEmail, firebaseUser } = useAuth();
   const [isResending, setIsResending] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
-  const [email, setEmail] = useState('');
-  const [showEmailInput, setShowEmailInput] = useState(false);
+  const registeredEmail = searchParams.get('email') || firebaseUser?.email || '';
 
   const handleResendVerification = async () => {
-    if (!email && showEmailInput) {
-      setResendMessage('メールアドレスを入力してください。');
-      return;
-    }
-
     setIsResending(true);
     setResendMessage('');
-
     try {
-      const emailToUse = email || searchParams.get('email') || '';
-
-      if (!emailToUse) {
-        setShowEmailInput(true);
-        setResendMessage('メールアドレスを入力してください。');
-        setIsResending(false);
-        return;
-      }
-
-      await resendVerificationEmail(emailToUse);
+      await resendVerificationEmail();
       setResendMessage('確認メールを再送信しました。メールをご確認ください。');
-      setShowEmailInput(false);
-    } catch (err) {
+    } catch {
       setResendMessage('メール送信に失敗しました。しばらく経ってから再度お試しください。');
     } finally {
       setIsResending(false);
@@ -65,7 +47,11 @@ function RegistrationSuccessPageContent() {
                 ご登録ありがとうございます。
               </p>
               <p className="text-gray-600">
-                確認メールをお送りしました。
+                {registeredEmail ? (
+                  <><span className="font-medium text-gray-900">{registeredEmail}</span> に確認メールをお送りしました。</>
+                ) : (
+                  '確認メールをお送りしました。'
+                )}
               </p>
               <div className="bg-pink-50 rounded-xl p-4 border border-pink-100">
                 <p className="text-pink-700 font-medium text-sm">
@@ -93,19 +79,6 @@ function RegistrationSuccessPageContent() {
                 </ul>
               </div>
 
-              {showEmailInput && (
-                <div className="mb-4">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="メールアドレスを入力"
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors text-gray-800"
-                    disabled={isResending}
-                  />
-                </div>
-              )}
-
               {resendMessage && (
                 <div className={`p-4 rounded-xl ${resendMessage.includes('失敗') ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
                   <p className={`text-sm ${resendMessage.includes('失敗') ? 'text-red-600' : 'text-green-600'}`}>
@@ -130,7 +103,7 @@ function RegistrationSuccessPageContent() {
               </button>
 
               <button
-                onClick={() => router.push('/login')}
+                onClick={() => router.push('/')}
                 className="w-full bg-white hover:bg-gray-50 text-gray-700 font-medium py-3 px-6 rounded-xl transition-all duration-200 border border-gray-300"
               >
                 トップページへ戻る

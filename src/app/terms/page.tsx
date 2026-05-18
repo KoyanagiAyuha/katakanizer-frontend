@@ -1,8 +1,10 @@
 import BackToHomeButton from '@/components/ui/BackToHomeButton';
+import Footer from '@/components/layout/Footer';
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 py-12 px-4">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-pink-50 to-purple-50">
+      <div className="flex-grow py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <BackToHomeButton />
         <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -85,6 +87,8 @@ export default function TermsPage() {
           </div>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

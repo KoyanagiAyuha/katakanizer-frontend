@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { LANGUAGE_LABELS } from '../../utils/constants';
 
 export interface LanguageBadgeProps {
   language: string;
@@ -15,25 +16,7 @@ const LanguageBadge: React.FC<LanguageBadgeProps> = ({
   variant = 'default',
   className = ''
 }) => {
-  const getLanguageDisplay = (lang: string) => {
-    const languages = {
-      'en': { flag: '🇺🇸', name: 'English' },
-      'ko': { flag: '🇰🇷', name: 'Korean' },
-      'fr': { flag: '🇫🇷', name: 'French' },
-      'es': { flag: '🇪🇸', name: 'Spanish' },
-      'de': { flag: '🇩🇪', name: 'German' },
-      'it': { flag: '🇮🇹', name: 'Italian' },
-      'pt': { flag: '🇵🇹', name: 'Portuguese' },
-      'zh': { flag: '🇨🇳', name: 'Chinese' },
-      'ja': { flag: '🇯🇵', name: 'Japanese' },
-      'ru': { flag: '🇷🇺', name: 'Russian' },
-      'ar': { flag: '🇸🇦', name: 'Arabic' },
-      'hi': { flag: '🇮🇳', name: 'Hindi' },
-      'th': { flag: '🇹🇭', name: 'Thai' },
-      'vi': { flag: '🇻🇳', name: 'Vietnamese' }
-    };
-    return languages[lang as keyof typeof languages] || { flag: '🌐', name: lang };
-  };
+  const label = LANGUAGE_LABELS[language] || `🌐 ${language}`;
 
   const baseClasses = 'inline-flex items-center font-medium rounded-full';
 
@@ -48,8 +31,6 @@ const LanguageBadge: React.FC<LanguageBadgeProps> = ({
     lg: 'px-4 py-2 text-sm'
   };
 
-  const { flag, name } = getLanguageDisplay(language);
-
   return (
     <span
       className={`
@@ -59,8 +40,7 @@ const LanguageBadge: React.FC<LanguageBadgeProps> = ({
         ${className}
       `.trim()}
     >
-      <span className="mr-1">{flag}</span>
-      {name}
+      {label}
     </span>
   );
 };

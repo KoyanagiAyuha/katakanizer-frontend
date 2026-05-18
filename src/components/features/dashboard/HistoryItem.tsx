@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { LanguageBadge, Button, Card } from '../../ui';
+import { ConversionHistoryItem, WordMapping, User } from '../../../types';
 
 interface HistoryItemProps {
-  item: any;
-  user: any;
+  item: ConversionHistoryItem;
+  user: User | null;
   onClick: () => void;
   onFavoriteToggle?: (id: number, isFavorite: boolean) => void;
 }
@@ -31,7 +32,7 @@ export default function HistoryItem({ item, user, onClick, onFavoriteToggle }: H
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center">
               <span className="text-white font-semibold text-sm">
-                {user?.username?.charAt(0)?.toUpperCase()}
+                {(item.username || user?.username)?.charAt(0)?.toUpperCase()}
               </span>
             </div>
             <div>
@@ -84,16 +85,14 @@ export default function HistoryItem({ item, user, onClick, onFavoriteToggle }: H
         {/* Conversion Preview */}
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6">
           <div className="text-indigo-900 text-base" style={{ lineHeight: '2.5' }}>
-            {item.result.word_mappings?.slice(0, 5).map((mapping: any, index: number) => (
+            {item.result.word_mappings?.slice(0, 5).map((mapping: WordMapping, index: number) => (
               <ruby key={index} className="mr-1">
                 <span>{mapping.line}</span>
                 <rt className="text-xs">{mapping.casual}</rt>
               </ruby>
             ))}
             {item.result.word_mappings?.length > 5 && (
-              <span className="text-gray-400 text-sm">
-                ...({item.result.word_mappings.length - 5} more phrases)
-              </span>
+              <span className="text-gray-400 text-sm">...</span>
             )}
           </div>
         </div>

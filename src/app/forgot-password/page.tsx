@@ -2,14 +2,13 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useApiService } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const { requestPasswordReset } = useApiService();
+  const { resetPassword, isLoading } = useAuth();
 
   const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -26,17 +25,14 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    setIsLoading(true);
     setMessage('');
 
     try {
-      const response = await requestPasswordReset(email);
+      await resetPassword(email);
       setIsSuccess(true);
-      setMessage(response.message);
-    } catch (error) {
+      setMessage('パスワードリセットメールを送信しました。メールをご確認ください。');
+    } catch {
       setMessage('リクエストの処理に失敗しました。しばらく経ってから再度お試しください。');
-    } finally {
-      setIsLoading(false);
     }
   };
 

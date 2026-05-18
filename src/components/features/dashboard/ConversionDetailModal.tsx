@@ -1,11 +1,56 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { ConversionHistoryItem, WordMapping } from '../../../types';
 
 interface ConversionDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  historyItem: any;
+  historyItem: ConversionHistoryItem | null;
+}
+
+// word_mappingsを原文の行ごとにグループ化する
+function groupMappingsByLine(text: string, mappings: WordMapping[]): WordMapping[][] {
+  const lines = text.split('\n').filter(line => line.trim());
+  const groups: WordMapping[][] = [];
+  let mappingIndex = 0;
+
+  for (const line of lines) {
+    const lineGroup: WordMapping[] = [];
+    let currentPos = 0;
+
+    while (mappingIndex < mappings.length && currentPos < line.length) {
+      const mapping = mappings[mappingIndex];
+      const mappingText = mapping.line;
+
+      // この mapping が現在の行に含まれるかチェック
+      const foundPos = line.toLowerCase().indexOf(mappingText.toLowerCase(), currentPos);
+      if (foundPos !== -1) {
+        lineGroup.push(mapping);
+        currentPos = foundPos + mappingText.length;
+        mappingIndex++;
+      } else {
+        // 見つからない場合は次の行へ
+        break;
+      }
+    }
+
+    if (lineGroup.length > 0) {
+      groups.push(lineGroup);
+    }
+  }
+
+  // 残りの mappings があれば最後のグループに追加
+  if (mappingIndex < mappings.length) {
+    const remaining = mappings.slice(mappingIndex);
+    if (groups.length > 0) {
+      groups[groups.length - 1].push(...remaining);
+    } else {
+      groups.push(remaining);
+    }
+  }
+
+  return groups;
 }
 
 export default function ConversionDetailModal({
@@ -14,6 +59,11 @@ export default function ConversionDetailModal({
   historyItem
 }: ConversionDetailModalProps) {
   const [displayMode, setDisplayMode] = useState<'casual' | 'formal'>('casual');
+
+  const groupedMappings = useMemo(() => {
+    if (!historyItem) return [];
+    return groupMappingsByLine(historyItem.text, historyItem.result.word_mappings || []);
+  }, [historyItem]);
 
   if (!isOpen || !historyItem) return null;
 
@@ -78,15 +128,19 @@ export default function ConversionDetailModal({
             displayMode === 'casual'
               ? 'bg-gradient-to-r from-indigo-50 to-blue-50'
               : 'bg-gradient-to-r from-purple-50 to-pink-50'
-          } rounded-2xl p-8`}>
+          } rounded-2xl p-8 overflow-hidden`}>
             <div className={`${
               displayMode === 'casual' ? 'text-indigo-900' : 'text-purple-900'
-            } text-lg`} style={{ lineHeight: '3' }}>
-              {historyItem.result.word_mappings?.map((mapping: any, index: number) => (
-                <ruby key={index} className="mr-1">
-                  <span>{mapping.line}</span>
-                  <rt className="text-sm">{displayMode === 'casual' ? mapping.casual : mapping.formal}</rt>
-                </ruby>
+            } text-lg space-y-4`}>
+              {groupedMappings.map((lineGroup, lineIndex) => (
+                <div key={lineIndex} className="flex flex-wrap" style={{ lineHeight: '2.5' }}>
+                  {lineGroup.map((mapping: WordMapping, index: number) => (
+                    <ruby key={index} className="mr-1">
+                      <span>{mapping.line}</span>
+                      <rt className="text-sm">{displayMode === 'casual' ? mapping.casual : mapping.formal}</rt>
+                    </ruby>
+                  ))}
+                </div>
               ))}
             </div>
           </div>

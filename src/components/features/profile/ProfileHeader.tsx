@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
+import { User, LanguageStats } from '../../../types';
 
 interface ProfileHeaderProps {
-  user: any;
+  user: User | null;
   stats: {
-    favoriteLanguages: any[];
+    favoriteLanguages: LanguageStats[];
   };
   conversionStatus: {
     can_convert: boolean;
@@ -30,7 +31,6 @@ export default function ProfileHeader({ user, stats, conversionStatus }: Profile
           {/* ユーザー情報 */}
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{user?.username}</h1>
-            <p className="text-gray-600 mb-4">{user?.email}</p>
 
             {/* 統計情報 */}
             <div className="flex justify-center md:justify-start space-x-8">

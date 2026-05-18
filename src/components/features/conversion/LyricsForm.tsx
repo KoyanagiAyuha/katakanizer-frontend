@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '../../../utils/config';
+import { LANGUAGE_OPTIONS } from '../../../utils/constants';
 
 interface LyricsEntry {
   id: number;
@@ -16,14 +18,6 @@ interface LyricsEntry {
 interface LyricsFormProps {
   onCreated?: (entry: LyricsEntry) => void;
 }
-
-const languages = [
-  { code: 'en', name: '英語' },
-  { code: 'ko', name: '韓国語' },
-  { code: 'fr', name: 'フランス語' },
-  { code: 'de', name: 'ドイツ語' },
-  { code: 'es', name: 'スペイン語' },
-];
 
 export default function LyricsForm({ onCreated }: LyricsFormProps) {
   const { getValidToken } = useAuth();
@@ -54,7 +48,7 @@ export default function LyricsForm({ onCreated }: LyricsFormProps) {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/lyrics', {
+      const response = await fetch(`${API_BASE_URL}/api/lyrics`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +114,7 @@ export default function LyricsForm({ onCreated }: LyricsFormProps) {
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               disabled={isLoading}
             >
-              {languages.map((lang) => (
+              {LANGUAGE_OPTIONS.map((lang) => (
                 <option key={lang.code} value={lang.code}>
                   {lang.name}
                 </option>

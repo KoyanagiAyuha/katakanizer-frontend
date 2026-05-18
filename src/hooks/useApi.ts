@@ -1,4 +1,6 @@
+import { useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../utils/config';
 
 interface ApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -10,7 +12,7 @@ interface ApiOptions {
 export function useApi() {
   const { getValidToken } = useAuth();
 
-  const apiCall = async <T = unknown>(endpoint: string, options: ApiOptions = {}): Promise<T> => {
+  const apiCall = useCallback(async <T = unknown>(endpoint: string, options: ApiOptions = {}): Promise<T> => {
     const { method = 'GET', headers = {}, body, signal } = options;
     
     // 有効なトークンを取得
@@ -39,8 +41,7 @@ export function useApi() {
     }
 
     // API呼び出し
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const response = await fetch(`${apiUrl}${endpoint}`, requestConfig);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, requestConfig);
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -62,7 +63,7 @@ export function useApi() {
     }
     
     return response as T;
-  };
+  }, [getValidToken]);
 
   return { apiCall };
 }

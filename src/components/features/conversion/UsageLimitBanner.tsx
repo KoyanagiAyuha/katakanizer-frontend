@@ -1,22 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useApiService } from '../../../services/api';
+
+interface ConversionStatus {
+  can_convert: boolean;
+  remaining_conversions: number;
+  daily_limit: number;
+  is_premium: boolean;
+  reset_time?: string;
+}
 
 interface UsageLimitBannerProps {
   onUpgradeClick?: () => void;
 }
 
 export default function UsageLimitBanner({ onUpgradeClick }: UsageLimitBannerProps) {
-  const [conversionStatus, setConversionStatus] = useState<any>(null);
+  const [conversionStatus, setConversionStatus] = useState<ConversionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const { getConversionStatus } = useApiService();
 
-  useEffect(() => {
-    loadStatus();
-  }, []);
-
-  const loadStatus = async () => {
+  const loadStatus = useCallback(async () => {
     try {
       const status = await getConversionStatus();
       setConversionStatus(status);
@@ -25,7 +29,11 @@ export default function UsageLimitBanner({ onUpgradeClick }: UsageLimitBannerPro
     } finally {
       setLoading(false);
     }
-  };
+  }, [getConversionStatus]);
+
+  useEffect(() => {
+    loadStatus();
+  }, [loadStatus]);
 
   if (loading || !conversionStatus) return null;
 

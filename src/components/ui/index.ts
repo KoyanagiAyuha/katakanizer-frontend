@@ -29,5 +29,3 @@ export { default as EmptyState } from './EmptyState';
 export { default as LoadingSpinner, PageLoadingSpinner, InlineLoadingSpinner, ButtonLoadingSpinner } from './LoadingSpinner';
 
 export { default as BackToHomeButton } from './BackToHomeButton';
-
-export { default as CookieConsent } from './CookieConsent';

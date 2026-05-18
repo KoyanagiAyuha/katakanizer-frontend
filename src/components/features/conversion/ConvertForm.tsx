@@ -1,26 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, FormInput, FormTextarea, FormSelect, InfoMessage, LanguageBadge } from '../../ui';
+import { Button, FormInput, FormTextarea, FormSelect, InfoMessage } from '../../ui';
+import { LANGUAGES_WITH_EXAMPLES } from '../../../utils/constants';
 
 interface ConvertFormProps {
   onConvert: (title: string, text: string, language: string) => void;
   isLoading: boolean;
 }
-
-interface LanguageOption {
-  code: string;
-  name: string;
-  examples: string[];
-}
-
-const languages: LanguageOption[] = [
-  { code: 'en', name: '英語', examples: ['hello', 'an apple', 'good morning', 'thank you', 'computer'] },
-  { code: 'ko', name: '韓国語', examples: ['안녕하세요', '사랑해요', '감사합니다'] },
-  { code: 'fr', name: 'フランス語', examples: ['bonjour', 'merci', 'au revoir'] },
-  { code: 'de', name: 'ドイツ語', examples: ['hallo', 'danke', 'auf wiedersehen'] },
-  { code: 'es', name: 'スペイン語', examples: ['hola', 'gracias', 'adiós'] },
-];
 
 
 export default function ConvertForm({ onConvert, isLoading }: ConvertFormProps) {
@@ -28,7 +15,7 @@ export default function ConvertForm({ onConvert, isLoading }: ConvertFormProps) 
   const [text, setText] = useState('');
   const [language, setLanguage] = useState('en');
 
-  const selectedLanguage = languages.find(lang => lang.code === language) || languages[0];
+  const selectedLanguage = LANGUAGES_WITH_EXAMPLES.find(lang => lang.code === language) || LANGUAGES_WITH_EXAMPLES[0];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +49,7 @@ export default function ConvertForm({ onConvert, isLoading }: ConvertFormProps) 
           onChange={(e) => setLanguage(e.target.value)}
           disabled={isLoading}
         >
-          {languages.map((lang) => (
+          {LANGUAGES_WITH_EXAMPLES.map((lang) => (
             <option key={lang.code} value={lang.code}>
               {lang.name}
             </option>

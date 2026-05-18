@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ButtonLoadingSpinner } from '../../ui/LoadingSpinner';
+import { LANGUAGE_LABELS } from '../../../utils/constants';
 
 interface ConversionCreateModalProps {
   isOpen: boolean;
@@ -64,15 +65,9 @@ export default function ConversionCreateModal({
                 onChange={(e) => setLanguage(e.target.value)}
                 className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-gray-800 bg-white"
               >
-                <option value="en">🇺🇸 英語 (English)</option>
-                <option value="ko">🇰🇷 韓国語 (Korean)</option>
-                <option value="fr">🇫🇷 フランス語 (French)</option>
-                <option value="es">🇪🇸 スペイン語 (Spanish)</option>
-                <option value="de">🇩🇪 ドイツ語 (German)</option>
-                <option value="it">🇮🇹 イタリア語 (Italian)</option>
-                <option value="pt">🇵🇹 ポルトガル語 (Portuguese)</option>
-                <option value="zh">🇨🇳 中国語 (Chinese)</option>
-                <option value="ja">🇯🇵 日本語 (Japanese)</option>
+                {Object.entries(LANGUAGE_LABELS).map(([code, label]) => (
+                  <option key={code} value={code}>{label}</option>
+                ))}
               </select>
             </div>
 

@@ -1,20 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApiService } from '../../../services/api';
 import HistoryItem from '../dashboard/HistoryItem';
 import ConversionDetailModal from '../dashboard/ConversionDetailModal';
 import Toast, { useToast } from '../../ui/Toast';
 import { PageLoadingSpinner, InlineLoadingSpinner } from '../../ui/LoadingSpinner';
+import { ConversionHistoryItem } from '../../../types';
+import { formatApiHistory } from '../../../utils/formatting';
 
-interface FavoritesPageProps {
-  onHistoryClick?: (item: any) => void;
-}
+type FavoriteItem = ConversionHistoryItem & { username?: string };
 
-export default function FavoritesPage({ onHistoryClick }: FavoritesPageProps) {
+export default function FavoritesPage() {
   const { getMyFavorites, removeFromFavorites } = useApiService();
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [selectedHistory, setSelectedHistory] = useState<any>(null);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [selectedHistory, setSelectedHistory] = useState<ConversionHistoryItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -22,27 +22,14 @@ export default function FavoritesPage({ onHistoryClick }: FavoritesPageProps) {
   const { toasts, addToast, removeToast } = useToast();
   const ITEMS_PER_PAGE = 20;
 
-  useEffect(() => {
-    loadFavorites();
-  }, []);
-
-  const loadFavorites = async () => {
+  const loadFavorites = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await getMyFavorites(ITEMS_PER_PAGE, 0);
-
-      const formattedFavorites = data.map((item: any) => ({
-        id: item.id,
-        timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
-        text: item.original_text,
-        title: item.title,
-        language: item.language,
+      const formattedFavorites: FavoriteItem[] = data.map(item => ({
+        ...formatApiHistory(item),
         username: item.username,
         is_favorite: true,
-        result: {
-          title: item.title,
-          word_mappings: item.word_mappings
-        }
       }));
 
       setFavorites(formattedFavorites);
@@ -59,9 +46,13 @@ export default function FavoritesPage({ onHistoryClick }: FavoritesPageProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getMyFavorites, addToast]);
 
-  const loadMoreFavorites = async () => {
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
+
+  const loadMoreFavorites = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
 
     setIsLoadingMore(true);
@@ -73,30 +64,21 @@ export default function FavoritesPage({ onHistoryClick }: FavoritesPageProps) {
         return;
       }
 
-      const formattedNewFavorites = newFavorites.map((item: any) => ({
-        id: item.id,
-        timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
-        text: item.original_text,
-        title: item.title,
-        language: item.language,
+      const formattedNewFavorites: FavoriteItem[] = newFavorites.map(item => ({
+        ...formatApiHistory(item),
         username: item.username,
         is_favorite: true,
-        result: {
-          title: item.title,
-          word_mappings: item.word_mappings
-        }
       }));
 
-      const updatedFavorites = [...favorites, ...formattedNewFavorites];
-      setFavorites(updatedFavorites);
-      setOffset(offset + ITEMS_PER_PAGE);
+      setFavorites(prev => [...prev, ...formattedNewFavorites]);
+      setOffset(prev => prev + ITEMS_PER_PAGE);
       setHasMore(newFavorites.length === ITEMS_PER_PAGE);
     } catch (error) {
       console.error('Failed to load more favorites:', error);
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [isLoadingMore, hasMore, offset, getMyFavorites]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -111,7 +93,7 @@ export default function FavoritesPage({ onHistoryClick }: FavoritesPageProps) {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [hasMore, isLoadingMore, offset, favorites]);
+  }, [hasMore, isLoadingMore, loadMoreFavorites]);
 
   const handleFavoriteToggle = async (id: number, isFavorite: boolean) => {
     try {

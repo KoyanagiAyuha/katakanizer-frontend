@@ -9,23 +9,24 @@ import ConversionDetailModal from './ConversionDetailModal';
 import HistoryItem from './HistoryItem';
 import EmptyState from '../../ui/EmptyState';
 import { PageLoadingSpinner, InlineLoadingSpinner } from '../../ui/LoadingSpinner';
+import { ConversionHistoryItem, User } from '../../../types';
+import { formatApiHistory } from '../../../utils/formatting';
 
 interface DashboardProps {
   showCreateModal: boolean;
   setShowCreateModal: (show: boolean) => void;
-  onHistoryClick?: (item: any) => void;
+  onHistoryClick?: (item: ConversionHistoryItem) => void;
 }
 
-export default function Dashboard({ showCreateModal, setShowCreateModal, onHistoryClick }: DashboardProps) {
+export default function Dashboard({ showCreateModal, setShowCreateModal }: DashboardProps) {
   const { user } = useAuth();
-  const { convertText, getMyHistory, getRecentHistory, addToFavorites, removeFromFavorites } = useApiService();
+  const { convertText, getRecentHistory, addToFavorites } = useApiService();
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('en');
-  const [result, setResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [history, setHistory] = useState<any[]>([]);
-  const [selectedHistory, setSelectedHistory] = useState<any>(null);
+  const [history, setHistory] = useState<ConversionHistoryItem[]>([]);
+  const [selectedHistory, setSelectedHistory] = useState<ConversionHistoryItem | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const { toasts, addToast, removeToast, updateToast } = useToast();
@@ -52,20 +53,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
 
         setOffset(ITEMS_PER_PAGE);
 
-        // API履歴をフロントエンド形式に変換
-        const formattedHistory = apiHistory.map((item: any) => ({
-          id: item.id,
-          timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
-          text: item.original_text,
-          title: item.title,
-          language: item.language,
-          username: item.username,
-          is_favorite: item.is_favorite || false,
-          result: {
-            title: item.title,
-            word_mappings: item.word_mappings
-          }
-        }));
+        const formattedHistory = apiHistory.map(formatApiHistory);
 
         if (!isCancelled) {
           setHistory(formattedHistory);
@@ -91,50 +79,38 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
     return () => {
       isCancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // 無限スクロール用の追加データ読み込み関数
-  const loadMoreHistory = async () => {
+  const loadMoreHistory = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
-    
+
     setIsLoadingMore(true);
     try {
       const newHistory = await getRecentHistory(ITEMS_PER_PAGE, offset);
-      
+
       if (newHistory.length === 0) {
         setHasMore(false);
         return;
       }
 
-      // API履歴をフロントエンド形式に変換
-      const formattedNewHistory = newHistory.map((item: any) => ({
-        id: item.id,
-        timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
-        text: item.original_text,
-        title: item.title,
-        language: item.language,
-        username: item.username,  // APIから取得したユーザー名を保持
-        is_favorite: item.is_favorite || false,
-        result: {
-          title: item.title,
-          word_mappings: item.word_mappings
-        }
-      }));
+      const formattedNewHistory = newHistory.map(formatApiHistory);
 
       // 重複を除いて追加
-      const existingIds = new Set(history.map(item => item.id));
-      const uniqueNewHistory = formattedNewHistory.filter(item => !existingIds.has(item.id));
-
-      const updatedHistory = [...history, ...uniqueNewHistory];
-      setHistory(updatedHistory);
-      setOffset(offset + ITEMS_PER_PAGE);
+      setHistory(prev => {
+        const existingIds = new Set(prev.map(item => item.id));
+        const uniqueNewHistory = formattedNewHistory.filter(item => !existingIds.has(item.id));
+        return [...prev, ...uniqueNewHistory];
+      });
+      setOffset(prev => prev + ITEMS_PER_PAGE);
       setHasMore(newHistory.length === ITEMS_PER_PAGE);
     } catch (error) {
       console.error('Failed to load more history:', error);
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [isLoadingMore, hasMore, offset, getRecentHistory]);
 
   // スクロールイベントリスナー
   useEffect(() => {
@@ -142,7 +118,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const scrollHeight = document.documentElement.scrollHeight;
       const clientHeight = document.documentElement.clientHeight;
-      
+
       // 画面の底から200px以内にスクロールしたら次のページを読み込み
       if (scrollTop + clientHeight >= scrollHeight - 200 && hasMore && !isLoadingMore) {
         loadMoreHistory();
@@ -151,7 +127,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [hasMore, isLoadingMore, offset, history]);
+  }, [hasMore, isLoadingMore, loadMoreHistory]);
 
   const handleConvert = useCallback(async () => {
     if (!text.trim()) return;
@@ -181,7 +157,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
 
     setIsLoading(true);
     setIsConverting(true);
-    
+
     // トーストで進捗を表示
     const toastId = addToast({
       type: 'loading',
@@ -189,61 +165,45 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
       message: title.trim() || text.trim().substring(0, 30) + '...',
       duration: 0,
     });
-    
+
     // モーダルを閉じる（変換はバックグラウンドで継続）
     setShowCreateModal(false);
-    
+
     try {
       const data = await convertText({
         text: text.trim(),
         title: title.trim() || `${new Date().toLocaleDateString('ja-JP')} 変換`,
         language,
       }, abortController.signal);
-      
+
       // リクエストがキャンセルされていないか確認
       if (abortController.signal.aborted) {
         removeToast(toastId);
         return;
       }
-      
-      setResult(data);
 
         // サーバーから返されたデータを使って履歴に追加
         if (data.id) {
-          const newHistoryItem = {
+          const newHistoryItem: ConversionHistoryItem = {
             id: data.id,
             timestamp: new Date().toLocaleString('ja-JP'),
             text: text.trim(),
             title: data.title || title.trim() || `${new Date().toLocaleDateString('ja-JP')} 変換`,
             language,
-            username: user?.username,
             is_favorite: false,
             result: {
               title: data.title,
               word_mappings: data.word_mappings
             }
           };
-          const updatedHistory = [newHistoryItem, ...history];
-          setHistory(updatedHistory);
+          setHistory(prev => [newHistoryItem, ...prev]);
         } else {
           // 履歴を再取得して最新状態を反映
           const apiHistory = await getRecentHistory(ITEMS_PER_PAGE, 0);
-          const formattedHistory = apiHistory.map((item: any) => ({
-            id: item.id,
-            timestamp: new Date(item.created_at).toLocaleString('ja-JP'),
-            text: item.original_text,
-            title: item.title,
-            language: item.language,
-            username: item.username,
-            is_favorite: item.is_favorite || false,
-            result: {
-              title: item.title,
-              word_mappings: item.word_mappings
-            }
-          }));
+          const formattedHistory = apiHistory.map(formatApiHistory);
           setHistory(formattedHistory);
         }
-        
+
         // 成功トーストに更新
         updateToast(toastId, {
           type: 'success',
@@ -251,18 +211,19 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
           message: `「${title.trim() || text.trim().substring(0, 30)}...」の変換が完了しました`,
           duration: 5000,
         });
-        
+
         setText('');
         setTitle('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error:', error);
-      
+
+      const err = error as { name?: string; message?: string };
       // エラートーストに更新
-      if (error.name !== 'AbortError') {
+      if (err.name !== 'AbortError') {
         updateToast(toastId, {
           type: 'error',
           title: '変換に失敗しました',
-          message: error.message || 'もう一度お試しください',
+          message: err.message || 'もう一度お試しください',
           duration: 5000,
         });
       } else {
@@ -273,7 +234,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
       setIsConverting(false);
       abortControllerRef.current = null;
     }
-  }, [text, title, language, isLoading, isConverting, convertText, history, addToast, removeToast, updateToast]);
+  }, [text, title, language, isLoading, isConverting, convertText, addToast, removeToast, updateToast, setShowCreateModal, getRecentHistory]);
 
   // リロード時の警告を設定
   useEffect(() => {
@@ -288,7 +249,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isConverting]);
 
-  const handleFavoriteToggle = async (id: number, isFavorite: boolean) => {
+  const handleFavoriteToggle = async (id: number, _isFavorite: boolean) => {
     try {
       // APIを呼び出してトグル
       const result = await addToFavorites(id);
@@ -310,10 +271,11 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
       }
 
       // 履歴のお気に入り状態を更新
-      const updatedHistory = history.map(item =>
-        item.id === id ? { ...item, is_favorite: result.is_favorite } : item
+      setHistory(prev =>
+        prev.map(item =>
+          item.id === id ? { ...item, is_favorite: result.is_favorite } : item
+        )
       );
-      setHistory(updatedHistory);
     } catch (error) {
       console.error('Failed to update favorite:', error);
       addToast({
@@ -329,7 +291,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
     <>
       {/* Toast通知 */}
       <Toast toasts={toasts} onRemove={removeToast} />
-      
+
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 md:ml-64">
 
         {/* Main Content */}
@@ -343,7 +305,7 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
                 <HistoryItem
                   key={item.id}
                   item={item}
-                  user={user}
+                  user={user as User | null}
                   onClick={() => setSelectedHistory(item)}
                   onFavoriteToggle={handleFavoriteToggle}
                 />
@@ -351,12 +313,12 @@ export default function Dashboard({ showCreateModal, setShowCreateModal, onHisto
             ) : (
               <EmptyState onCreateClick={() => setShowCreateModal(true)} />
             )}
-            
+
             {/* Loading indicator for infinite scroll */}
             {isLoadingMore && (
               <InlineLoadingSpinner text="さらに読み込み中..." />
             )}
-            
+
             {/* End of results indicator */}
             {!hasMore && history.length > 0 && (
               <div className="text-center py-8">

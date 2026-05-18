@@ -1,23 +1,37 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  is_active: boolean;
-  created_at: string;
-}
+import {
+  User as FirebaseUser,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  updateEmail as firebaseUpdateEmail,
+  updatePassword as firebaseUpdatePassword,
+  verifyBeforeUpdateEmail,
+} from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import type { User } from '@/types';
+import { API_BASE_URL } from '@/utils/config';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
-  login: (username: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<User>;
-  logout: () => void;
+  firebaseUser: FirebaseUser | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, username: string) => Promise<void>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
+  updateUserInfo: (updates: Partial<User>) => void;
+  updateEmail: (currentPassword: string, newEmail: string) => Promise<void>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   isLoading: boolean;
-  loading: boolean; // 初期化状態のローディング
+  loading: boolean;
   error: string | null;
   clearError: () => void;
   getValidToken: () => Promise<string | null>;
@@ -27,241 +41,164 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
-  const [tokenExpiry, setTokenExpiry] = useState<number | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const savedToken = localStorage.getItem('auth_token');
-      const savedRefreshToken = localStorage.getItem('refresh_token');
-      const savedExpiry = localStorage.getItem('token_expiry');
-      
-      if (savedToken && savedRefreshToken && savedExpiry) {
-        const expiry = parseInt(savedExpiry);
-        const now = Date.now();
-        const bufferTime = 60000; // 1分のバッファ
-        
-        setRefreshToken(savedRefreshToken);
-        
-        // トークンの有効期限をチェック（バッファ時間を考慮）
-        if (expiry - bufferTime > now) {
-          // トークンがまだ有効
-          setToken(savedToken);
-          setTokenExpiry(expiry);
-          await fetchCurrentUser(savedToken);
-        } else {
-          // トークンが期限切れまたは期限が近い場合はリフレッシュ
-          await refreshAccessToken(savedRefreshToken);
-        }
-      } else {
-        // 保存されたトークンがない場合はクリア
-        clearAuthData();
-      }
-      
-      setIsInitialized(true);
-    };
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setFirebaseUser(fbUser);
 
-    initializeAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      if (fbUser && fbUser.emailVerified) {
+        await fetchCurrentUser(fbUser);
+      } else {
+        setUser(null);
+      }
+
+      setIsInitialized(true);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const fetchCurrentUser = async (authToken: string) => {
+  const fetchCurrentUser = async (fbUser: FirebaseUser) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/auth/me`, {
+      const idToken = await fbUser.getIdToken();
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          'Authorization': `Bearer ${idToken}`,
         },
       });
 
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
-      } else if (response.status === 401) {
-        // 401エラーの場合は認証が無効なので、初期化後でなければクリア
-        if (isInitialized) {
-          console.warn('Authentication failed, clearing auth data');
-          clearAuthData();
-        }
       } else {
-        throw new Error(`Failed to fetch user: ${response.status}`);
+        if (response.status !== 403 && response.status !== 404) {
+          console.warn(`Backend authentication failed: ${response.status}`);
+        }
+        setUser(null);
       }
     } catch (err) {
       console.error('Failed to fetch current user:', err);
-      if (isInitialized) {
-        clearAuthData();
-      }
+      setUser(null);
     }
   };
 
-  const refreshAccessToken = async (refreshTokenValue: string): Promise<string | null> => {
-    if (isRefreshing) {
-      // すでにリフレッシュ中の場合は待機
-      return new Promise((resolve) => {
-        const checkRefresh = setInterval(() => {
-          if (!isRefreshing) {
-            clearInterval(checkRefresh);
-            resolve(token);
-          }
-        }, 100);
-      });
-    }
-
-    setIsRefreshing(true);
-    
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh_token: refreshTokenValue }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const newAccessToken = data.access_token;
-        const newRefreshToken = data.refresh_token;
-        const expiresIn = data.expires_in || 7200; // デフォルト2時間（.envの設定に合わせる）
-        const newExpiry = Date.now() + (expiresIn * 1000);
-        
-        setToken(newAccessToken);
-        setRefreshToken(newRefreshToken);
-        setTokenExpiry(newExpiry);
-        
-        localStorage.setItem('auth_token', newAccessToken);
-        localStorage.setItem('refresh_token', newRefreshToken);
-        localStorage.setItem('token_expiry', newExpiry.toString());
-        
-        // ユーザー情報も取得
-        await fetchCurrentUser(newAccessToken);
-        
-        return newAccessToken;
-      } else {
-        console.warn('Token refresh failed, clearing auth data');
-        clearAuthData();
-        return null;
-      }
-    } catch (err) {
-      console.error('Failed to refresh token:', err);
-      clearAuthData();
-      return null;
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const clearAuthData = () => {
-    setUser(null);
-    setToken(null);
-    setRefreshToken(null);
-    setTokenExpiry(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('token_expiry');
-  };
-
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'ログインに失敗しました');
+      if (!userCredential.user.emailVerified) {
+        // メール未検証の場合、検証メールを再送信してエラーを投げる
+        // サインイン状態は維持（再送信ページで sendEmailVerification を使うため）
+        try {
+          await sendEmailVerification(userCredential.user);
+        } catch {
+          // レート制限等で再送信に失敗しても、リダイレクトは行う
+        }
+        const errorMessage = 'メールアドレスが確認されていません';
+        setError(errorMessage);
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      const authToken = data.access_token;
-      const refreshTokenValue = data.refresh_token;
-      const expiresIn = data.expires_in || 7200; // デフォルト2時間（.envの設定に合わせる）
-      const expiry = Date.now() + (expiresIn * 1000);
-      
-      setToken(authToken);
-      setRefreshToken(refreshTokenValue);
-      setTokenExpiry(expiry);
-      
-      localStorage.setItem('auth_token', authToken);
-      localStorage.setItem('refresh_token', refreshTokenValue);
-      localStorage.setItem('token_expiry', expiry.toString());
-      
-      await fetchCurrentUser(authToken);
+      await fetchCurrentUser(userCredential.user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
-      throw err;
+      if (err instanceof Error && err.message === 'メールアドレスが確認されていません') {
+        throw err;
+      }
+      const errorMessage = getFirebaseErrorMessage(err);
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (username: string, email: string, password: string) => {
+  const register = async (email: string, password: string, username: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, email, password }),
-      });
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'ユーザー登録に失敗しました');
+      // Send verification email
+      await sendEmailVerification(userCredential.user);
+
+      // バックエンドにユーザー登録（失敗しても Firebase 登録自体は成功扱い）
+      try {
+        const idToken = await userCredential.user.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ username }),
+        });
+
+        if (!response.ok) {
+          console.warn('Backend signup failed, will retry after email verification');
+        }
+      } catch (backendErr) {
+        console.warn('Backend signup error:', backendErr);
       }
 
-      const userData = await response.json();
-      // 登録成功 - 自動ログインはしない
-      return userData;
+      // 未検証でもサインイン状態を維持（再送信のため firebaseUser が必要）
     } catch (err) {
-      setError(err instanceof Error ? err.message : '不明なエラーが発生しました');
-      throw err;
+      const errorMessage = getFirebaseErrorMessage(err);
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const logout = async () => {
-    // サーバー側でリフレッシュトークンを無効化
-    if (token) {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        await fetch(`${apiUrl}/api/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      } catch (err) {
-        console.error('Logout error:', err);
-      }
+    try {
+      await signOut(auth);
+      setUser(null);
+      setError(null);
+    } catch (err) {
+      console.error('Logout error:', err);
     }
-    
-    clearAuthData();
+  };
+
+  const resetPassword = async (email: string) => {
+    setIsLoading(true);
     setError(null);
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (err) {
+      const errorMessage = getFirebaseErrorMessage(err);
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resendVerificationEmail = async () => {
+    if (!firebaseUser) {
+      throw new Error('ログインが必要です');
+    }
+
+    try {
+      await sendEmailVerification(firebaseUser);
+    } catch (err) {
+      const errorMessage = getFirebaseErrorMessage(err);
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
   };
 
   const getValidToken = async (): Promise<string | null> => {
     if (!isInitialized) {
-      // まだ初期化されていない場合は待機
       return new Promise((resolve) => {
         const checkInit = setInterval(() => {
           if (isInitialized) {
@@ -272,19 +209,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
-    if (!token || !tokenExpiry) return null;
-    
-    const now = Date.now();
-    const bufferTime = 60000; // 1分のバッファ
-    
-    if (tokenExpiry - bufferTime > now) {
-      // トークンはまだ有効
-      return token;
-    } else if (refreshToken) {
-      // トークンをリフレッシュ
-      return await refreshAccessToken(refreshToken);
-    } else {
-      clearAuthData();
+    if (!firebaseUser) return null;
+
+    try {
+      // Firebase automatically handles token refresh
+      return await firebaseUser.getIdToken();
+    } catch (err) {
+      console.error('Failed to get token:', err);
       return null;
     }
   };
@@ -293,14 +224,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
   };
 
+  const updateUserInfo = (updates: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...updates } : null);
+  };
+
+  const reauthenticate = async (currentPassword: string) => {
+    if (!firebaseUser || !firebaseUser.email) {
+      throw new Error('ログインが必要です');
+    }
+    const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
+    await reauthenticateWithCredential(firebaseUser, credential);
+  };
+
+  const updateEmail = async (currentPassword: string, newEmail: string) => {
+    if (!firebaseUser) {
+      throw new Error('ログインが必要です');
+    }
+
+    try {
+      // 再認証
+      await reauthenticate(currentPassword);
+      // メールアドレス変更前に確認メールを送信
+      await verifyBeforeUpdateEmail(firebaseUser, newEmail);
+    } catch (err) {
+      const errorMessage = getFirebaseErrorMessage(err);
+      throw new Error(errorMessage);
+    }
+  };
+
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
+    if (!firebaseUser) {
+      throw new Error('ログインが必要です');
+    }
+
+    try {
+      // 再認証
+      await reauthenticate(currentPassword);
+      // パスワード変更
+      await firebaseUpdatePassword(firebaseUser, newPassword);
+    } catch (err) {
+      const errorMessage = getFirebaseErrorMessage(err);
+      throw new Error(errorMessage);
+    }
+  };
+
   const value = {
     user,
-    token,
+    firebaseUser,
     login,
     register,
     logout,
+    resetPassword,
+    resendVerificationEmail,
+    updateUserInfo,
+    updateEmail,
+    updatePassword,
     isLoading,
-    loading: !isInitialized, // 初期化が完了していない間はローディング状態
+    loading: !isInitialized,
     error,
     clearError,
     getValidToken,
@@ -319,4 +299,35 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+function getFirebaseErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    const errorCode = (error as { code?: string }).code;
+    switch (errorCode) {
+      case 'auth/email-already-in-use':
+        return 'このメールアドレスは既に使用されています';
+      case 'auth/invalid-email':
+        return 'メールアドレスの形式が正しくありません';
+      case 'auth/operation-not-allowed':
+        return 'この操作は許可されていません';
+      case 'auth/weak-password':
+        return 'パスワードが弱すぎます（6文字以上必要）';
+      case 'auth/user-disabled':
+        return 'このアカウントは無効化されています';
+      case 'auth/user-not-found':
+        return 'ユーザーが見つかりません';
+      case 'auth/wrong-password':
+        return 'パスワードが間違っています';
+      case 'auth/invalid-credential':
+        return 'メールアドレスまたはパスワードが間違っています';
+      case 'auth/too-many-requests':
+        return 'リクエストが多すぎます。しばらく待ってから再試行してください';
+      case 'auth/network-request-failed':
+        return 'ネットワークエラーが発生しました';
+      default:
+        return error.message || '不明なエラーが発生しました';
+    }
+  }
+  return '不明なエラーが発生しました';
 }

@@ -2,11 +2,13 @@
 
 import React from 'react';
 import LoadingSpinner from '../../ui/LoadingSpinner';
+import { ConversionHistoryItem, WordMapping } from '../../../types';
+import { getLanguageLabel } from '../../../utils/formatting';
 
 interface HistoryTabProps {
-  myHistory: any[];
+  myHistory: ConversionHistoryItem[];
   isLoading: boolean;
-  onHistoryClick?: (item: any) => void;
+  onHistoryClick?: (item: ConversionHistoryItem) => void;
   onDeleteClick: (id: number, title: string) => void;
   onFavoriteToggle?: (id: number, isFavorite: boolean) => void;
 }
@@ -18,21 +20,6 @@ export default function HistoryTab({
   onDeleteClick,
   onFavoriteToggle
 }: HistoryTabProps) {
-  const getLanguageLabel = (language: string) => {
-    const labels: { [key: string]: string } = {
-      'en': '🇺🇸 English',
-      'ko': '🇰🇷 Korean',
-      'fr': '🇫🇷 French',
-      'es': '🇪🇸 Spanish',
-      'de': '🇩🇪 German',
-      'it': '🇮🇹 Italian',
-      'pt': '🇵🇹 Portuguese',
-      'zh': '🇨🇳 Chinese',
-      'ja': '🇯🇵 Japanese'
-    };
-    return labels[language] || language;
-  };
-
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -138,7 +125,7 @@ export default function HistoryTab({
 
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4">
                 <div className="text-indigo-900 text-sm leading-relaxed">
-                  {item.result.word_mappings?.slice(0, 3).map((mapping: any, index: number) => (
+                  {item.result.word_mappings?.slice(0, 3).map((mapping: WordMapping, index: number) => (
                     <ruby key={index} className="mr-1">
                       <span>{mapping.line}</span>
                       <rt className="text-xs">{mapping.casual}</rt>

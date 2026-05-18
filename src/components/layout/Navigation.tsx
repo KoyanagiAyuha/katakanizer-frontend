@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface NavigationProps {
@@ -39,7 +40,7 @@ export default function Navigation({ currentPage, onPageChange, onCreateClick }:
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-white border-r border-gray-200 z-30">
         <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
           <div className="flex items-center flex-shrink-0 px-4 mb-8">
-            <img src="/logo-header.svg" alt="Katakanizer" className="h-10 w-auto" />
+            <Image src="/logo-header.svg" alt="Katakanizer" width={160} height={40} />
           </div>
           
           <nav className="mt-5 flex-1 px-2 space-y-2">

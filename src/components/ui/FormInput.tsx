@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
 
 export interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -58,7 +58,8 @@ const FormInput: React.FC<FormInputProps> = ({
   id,
   ...props
 }) => {
-  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  const generatedId = useId();
+  const inputId = id || `input-${generatedId}`;
   const hasError = !!error;
 
   return (
@@ -96,7 +97,8 @@ export const FormTextarea: React.FC<FormTextareaProps> = ({
   id,
   ...props
 }) => {
-  const inputId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
+  const generatedId = useId();
+  const inputId = id || `textarea-${generatedId}`;
   const hasError = !!error;
 
   return (
@@ -135,7 +137,8 @@ export const FormSelect: React.FC<FormSelectProps> = ({
   id,
   ...props
 }) => {
-  const inputId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
+  const generatedId = useId();
+  const inputId = id || `select-${generatedId}`;
   const hasError = !!error;
 
   return (

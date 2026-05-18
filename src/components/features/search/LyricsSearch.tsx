@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../../utils/config';
+import { LANGUAGE_FILTER_OPTIONS } from '../../../utils/constants';
+import { getLanguageLabel } from '../../../utils/formatting';
 
 interface LyricsEntry {
   id: number;
@@ -15,15 +18,6 @@ interface LyricsEntry {
 interface LyricsSearchProps {
   refreshTrigger?: number;
 }
-
-const languages = [
-  { code: '', name: '全ての言語' },
-  { code: 'en', name: '英語' },
-  { code: 'ko', name: '韓国語' },
-  { code: 'fr', name: 'フランス語' },
-  { code: 'de', name: 'ドイツ語' },
-  { code: 'es', name: 'スペイン語' },
-];
 
 export default function LyricsSearch({ refreshTrigger }: LyricsSearchProps) {
   const [query, setQuery] = useState('');
@@ -51,7 +45,7 @@ export default function LyricsSearch({ refreshTrigger }: LyricsSearchProps) {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/lyrics?limit=10');
+      const response = await fetch(`${API_BASE_URL}/api/lyrics?limit=10`);
 
       if (!response.ok) {
         throw new Error('データの取得に失敗しました');
@@ -85,7 +79,7 @@ export default function LyricsSearch({ refreshTrigger }: LyricsSearchProps) {
         ...(language && { language }),
       });
 
-      const response = await fetch(`http://localhost:8000/api/lyrics/search?${params}`);
+      const response = await fetch(`${API_BASE_URL}/api/lyrics/search?${params}`);
 
       if (!response.ok) {
         throw new Error('検索に失敗しました');
@@ -98,14 +92,6 @@ export default function LyricsSearch({ refreshTrigger }: LyricsSearchProps) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ja-JP');
-  };
-
-  const getLanguageName = (code: string) => {
-    return languages.find(lang => lang.code === code)?.name || code;
   };
 
   return (
@@ -134,7 +120,7 @@ export default function LyricsSearch({ refreshTrigger }: LyricsSearchProps) {
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               disabled={isLoading}
             >
-              {languages.map((lang) => (
+              {LANGUAGE_FILTER_OPTIONS.map((lang) => (
                 <option key={lang.code} value={lang.code}>
                   {lang.name}
                 </option>
@@ -191,9 +177,9 @@ export default function LyricsSearch({ refreshTrigger }: LyricsSearchProps) {
                 <h3 className="text-lg font-semibold text-gray-900">{entry.title}</h3>
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
                   <span className="bg-gray-100 px-2 py-1 rounded">
-                    {getLanguageName(entry.language)}
+                    {getLanguageLabel(entry.language)}
                   </span>
-                  <span>{formatDate(entry.created_at)}</span>
+                  <span>{new Date(entry.created_at).toLocaleDateString('ja-JP')}</span>
                 </div>
               </div>
               
