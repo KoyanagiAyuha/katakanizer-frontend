@@ -14,6 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://katakanizer.lydear.com"
+  ),
   title: "Katakanizer - ネイティブ発音カタカナ変換ツール",
   description: "英語などの外国語をネイティブスピーカーの発音に近いカタカナに変換。カタカナ英語から脱却し、自然な発音を身につける学習支援ツール",
   icons: {

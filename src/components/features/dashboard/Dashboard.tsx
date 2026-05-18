@@ -135,14 +135,12 @@ export default function Dashboard({ showCreateModal, setShowCreateModal }: Dashb
     // デバウンス処理：前回のリクエストから1秒未満の場合はスキップ
     const now = Date.now();
     if (now - lastRequestTimeRef.current < 1000) {
-      console.log('Request debounced - too soon after last request');
       return;
     }
     lastRequestTimeRef.current = now;
 
     // 既に処理中の場合は何もしない
     if (isLoading || isConverting) {
-      console.log('Already processing, skipping duplicate request');
       return;
     }
 

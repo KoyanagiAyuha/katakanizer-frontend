@@ -65,10 +65,11 @@ export default function UsageLimitBanner({ onUpgradeClick }: UsageLimitBannerPro
   const isLow = remaining_conversions <= 2;
   const isEmpty = remaining_conversions === 0;
 
-  // リセット時刻の計算
-  const resetDate = new Date(reset_time);
-  const hoursUntilReset = Math.floor((resetDate.getTime() - Date.now()) / (1000 * 60 * 60));
-  const minutesUntilReset = Math.floor((resetDate.getTime() - Date.now()) / (1000 * 60)) % 60;
+  // リセット時刻の計算（reset_time が無い場合はカウントダウンを表示しない）
+  const resetDate = reset_time ? new Date(reset_time) : null;
+  const msUntilReset = resetDate ? resetDate.getTime() - Date.now() : 0;
+  const hoursUntilReset = Math.floor(msUntilReset / (1000 * 60 * 60));
+  const minutesUntilReset = Math.floor(msUntilReset / (1000 * 60)) % 60;
 
   return (
     <div className={`rounded-xl p-4 mb-6 border ${
@@ -111,7 +112,9 @@ export default function UsageLimitBanner({ onUpgradeClick }: UsageLimitBannerPro
                   : 'text-blue-700'
               }`}>
                 {isEmpty
-                  ? `次のリセットまで ${hoursUntilReset}時間 ${minutesUntilReset}分`
+                  ? (resetDate
+                    ? `次のリセットまで ${hoursUntilReset}時間 ${minutesUntilReset}分`
+                    : '明日リセットされます')
                   : isLow
                   ? 'まもなく上限に達します'
                   : '無料プランをご利用中です'

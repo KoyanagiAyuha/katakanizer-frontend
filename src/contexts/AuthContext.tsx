@@ -11,7 +11,7 @@ import {
   sendEmailVerification,
   reauthenticateWithCredential,
   EmailAuthProvider,
-  updateEmail as firebaseUpdateEmail,
+  updateProfile,
   updatePassword as firebaseUpdatePassword,
   verifyBeforeUpdateEmail,
 } from 'firebase/auth';
@@ -60,16 +60,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
+    // 認証リスナーはマウント時に一度だけ登録する（fetchCurrentUser は意図的に依存配列へ含めない）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // バックエンドにユーザーを登録する。成功可否を返す。
+  const signupBackend = async (fbUser: FirebaseUser, username: string): Promise<boolean> => {
+    try {
+      const idToken = await fbUser.getIdToken();
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ username }),
+      });
+      return response.ok;
+    } catch (err) {
+      console.warn('Backend signup error:', err);
+      return false;
+    }
+  };
 
   const fetchCurrentUser = async (fbUser: FirebaseUser) => {
     try {
       const idToken = await fbUser.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-        },
-      });
+      const fetchMe = () =>
+        fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+          },
+        });
+
+      let response = await fetchMe();
+
+      // バックエンド未登録（register 時の signup 失敗）の場合、
+      // メール検証済みであれば signup をリトライしてから再取得する
+      if (response.status === 404 && fbUser.emailVerified) {
+        const username =
+          fbUser.displayName || fbUser.email?.split('@')[0] || 'user';
+        const created = await signupBackend(fbUser, username);
+        if (created) {
+          response = await fetchMe();
+        }
+      }
 
       if (response.ok) {
         const userData = await response.json();
@@ -126,26 +161,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
+      // ユーザー名を Firebase プロフィールに保存
+      // （バックエンド登録が失敗した場合のリトライで username を再利用するため）
+      await updateProfile(userCredential.user, { displayName: username });
+
       // Send verification email
       await sendEmailVerification(userCredential.user);
 
-      // バックエンドにユーザー登録（失敗しても Firebase 登録自体は成功扱い）
-      try {
-        const idToken = await userCredential.user.getIdToken();
-        const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({ username }),
-        });
-
-        if (!response.ok) {
-          console.warn('Backend signup failed, will retry after email verification');
-        }
-      } catch (backendErr) {
-        console.warn('Backend signup error:', backendErr);
+      // バックエンドにユーザー登録（失敗しても Firebase 登録自体は成功扱い）。
+      // ここで失敗しても、メール検証後の初回ログイン時に fetchCurrentUser が
+      // signup を自動リトライするため、登録漏れにはならない。
+      const created = await signupBackend(userCredential.user, username);
+      if (!created) {
+        console.warn('Backend signup failed, will retry on first verified login');
       }
 
       // 未検証でもサインイン状態を維持（再送信のため firebaseUser が必要）
